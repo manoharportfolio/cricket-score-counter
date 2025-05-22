@@ -1,36 +1,35 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
-  margin: 0;
-  padding: 20px;
-  text-align: center;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Box Cricket Score Counter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Box Cricket Score Counter</h1>
 
-.container {
-  max-width: 500px;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-}
+    <div class="teams">
+      <input type="text" id="teamA" placeholder="Team A Name" />
+      <input type="text" id="teamB" placeholder="Team B Name" />
+    </div>
 
-input {
-  margin: 10px;
-  padding: 8px;
-  width: 40%;
-}
+    <div class="scoreboard">
+      <h2 id="scoreDisplay">Score: 0/0</h2>
+      <h3 id="overDisplay">Overs: 0.0</h3>
 
-button {
-  margin: 5px;
-  padding: 10px 15px;
-  font-size: 16px;
-  border: none;
-  background-color: #3498db;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
+      <div class="buttons">
+        <button onclick="addRun(1)">+1 Run</button>
+        <button onclick="addRun(4)">+4 Runs</button>
+        <button onclick="addRun(6)">+6 Runs</button>
+        <button onclick="addWicket()">Wicket</button>
+        <button onclick="addBall()">Dot Ball</button>
+        <button onclick="resetMatch()">Reset</button>
+      </div>
+    </div>
+  </div>
 
-button:hover {
-  background-color: #2980b9;
-}
+  <script src="script.js"></script>
+</body>
+</html>
