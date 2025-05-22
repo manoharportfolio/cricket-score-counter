@@ -27,4 +27,4 @@ This project is designed to simplify score tracking so that all players can view
 1. **Clone the repository**  
 ```bash
 git clone https://github.com/manoharportfolio/cricket-score-counter.git
-cd box-cricket-score-counter
+cd cricket-score-counter
