@@ -1,5 +1,5 @@
 # Recreate the README file after code state reset
-readme_content = """
+
 # Box Cricket Score Counter
 
 A responsive web application for keeping track of cricket scores during informal or box cricket matches with friends.  
