@@ -2,16 +2,21 @@ body {
   font-family: Arial, sans-serif;
   background: #f4f4f4;
   margin: 0;
+
   padding: 20px;
   text-align: center;
 }
 
 .container {
-  max-width: 500px;
-  margin: auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
+    max-width: 500px;
+    margin: auto;
+    background: #77e253;
+    padding: 20px;
+    border-radius: 40%;
+}
+.container h1{
+    background: coral;
+    border-radius: 15px;
 }
 
 input {
