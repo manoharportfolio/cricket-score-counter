@@ -122,6 +122,12 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
+  onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    alert("You must be logged in to access this page.");
+    window.location.href = "index.html"; // redirect to login/home
+  }
+});
 
   function displayMatch(matchId, match) {
     document.getElementById("matchOutput").style.display = "block";
