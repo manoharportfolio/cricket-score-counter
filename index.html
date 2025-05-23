@@ -83,6 +83,45 @@
     .btn:hover {
       background-color: #218838;
     }
+    #authSection {
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 20px;
+  max-width: 400px;
+  margin: 40px auto;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+#authSection input {
+  width: 90%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+#authSection button {
+  margin: 5px;
+  padding: 10px 20px;
+  font-size: 15px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#authSection button:hover {
+  background-color: #0056b3;
+}
+
+#userInfo {
+  font-size: 14px;
+  margin-top: 10px;
+  color: #333;
+}
+
   </style>
 </head>
 <body>
@@ -98,11 +137,82 @@
       </div>
     </div>
   </div>
+  <!-- Auth Section -->
+<div id="authSection" style="text-align:center; margin-top:40px;">
+  <h2>Login / Signup</h2>
+  <input type="email" id="email" placeholder="Email"><br><br>
+  <input type="password" id="password" placeholder="Password"><br><br>
+  <button onclick="login()">Login</button>
+  <button onclick="signup()">Signup</button>
+  <button onclick="logout()" style="display:none;" id="logoutBtn">Logout</button>
+  <p id="userInfo"></p>
+</div>
+
 
   <!-- Homepage Actions -->
   <div class="container">
-    <button class="btn" onclick="location.href='match.html'">Start Match</button>
+    <button class="btn" id="startBtn" onclick="location.href='match.html'" style="display:none;">Start Match</button>
     <button class="btn" onclick="location.href='live.html'">Live Scoreboard & Card</button>
   </div>
 </body>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDSSDoLtQwHGOjfo7JUB6ybDAFviaGASAA",
+    authDomain: "cricketscorelive-28d43.firebaseapp.com",
+    projectId: "cricketscorelive-28d43",
+    storageBucket: "cricketscorelive-28d43.appspot.com",
+    messagingSenderId: "444484251974",
+    appId: "1:444484251974:web:aec9e237181784ea7cf547"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const email = document.getElementById("email");
+  const password = document.getElementById("password");
+  const userInfo = document.getElementById("userInfo");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  // Auth state listener
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      userInfo.innerText = `Logged in as: ${user.email}`;
+      logoutBtn.style.display = "inline-block";
+      document.getElementById("startBtn").style.display = "inline-block";
+    } else {
+      userInfo.innerText = "Not logged in.";
+      logoutBtn.style.display = "none";
+      document.getElementById("startBtn").style.display = "none";
+    }
+  });
+
+  window.signup = function () {
+    createUserWithEmailAndPassword(auth, email.value, password.value)
+      .then(() => alert("Signup successful"))
+      .catch(err => alert(err.message));
+  };
+
+  window.login = function () {
+    signInWithEmailAndPassword(auth, email.value, password.value)
+      .then(() => alert("Login successful"))
+      .catch(err => alert(err.message));
+  };
+
+  window.logout = function () {
+    signOut(auth).then(() => alert("Logged out"));
+  };
+  window.openProfile = function () {
+  const user = auth.currentUser;
+  if (user) {
+    alert(`👤 Profile Info\n\nEmail: ${user.email}\nUID: ${user.uid}`);
+  } else {
+    alert("You are not logged in.");
+  }
+};
+
+</script>
+
 </html>

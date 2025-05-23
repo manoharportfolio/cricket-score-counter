@@ -57,17 +57,24 @@ function updateDisplay() {
 }
 
 function saveMatchData() {
+  const user = firebase.auth().currentUser; // or use passed auth if using modules
+  if (!user) {
+    alert("You must be logged in to update the match.");
+    return;
+  }
+
   const data = {
     team1, team2, battingTeam, bowlingTeam,
     innings, target, oversLimit, balls, runs, wickets,
     strikerIndex, nonStrikerIndex, currentBowler,
     playerStats, bowlerStats, ballLog,
-    firstInningsStats
+    firstInningsStats,
+    createdBy: user.uid // ✅ Save who created the match
   };
 
-  localStorage.setItem(matchId, JSON.stringify(data)); // optional for offline
+  localStorage.setItem(matchId, JSON.stringify(data)); // optional
   if (window.sendToFirebase) {
-    window.sendToFirebase(matchId, data); // 🔥 send to Firebase
+    window.sendToFirebase(matchId, data);
   }
 }
 
@@ -254,6 +261,11 @@ function endMatch() {
   summary += `🏆 Result: ${result}`;
   document.getElementById("matchSummary").innerText = summary;
   alert(result);
+}
+const user = firebase.auth().currentUser;
+if (!user || matchData.createdBy !== user.uid) {
+  alert("You are not the owner of this match.");
+  return;
 }
 
 function startMatch() {
