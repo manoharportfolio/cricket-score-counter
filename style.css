@@ -7,7 +7,7 @@ body {
 }
 
 .container {
-  max-width: 650px;
+  max-width: 700px;
   margin: auto;
   background: white;
   padding: 20px;
@@ -39,6 +39,17 @@ button:hover {
   background-color: #2980b9;
 }
 
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.buttons button {
+  margin: 6px;
+  min-width: 110px;
+}
+
 .ball-tracker {
   margin-top: 10px;
   font-size: 18px;
@@ -48,15 +59,14 @@ button:hover {
   background-color: #fafafa;
   min-height: 40px;
 }
-.score-board-style {
-    background: #3fff3f;
-    border: 1px solid black;
-    border-radius: 38%;
-}
-.boardTitle{
 
-    background: #ff7f00;
-    border: 2px solid;
-    border-radius: 13%;
-
+#playerStats, #bowlerStats {
+  text-align: left;
+  margin: 10px auto;
+  padding: 10px;
+  background: #f0f8ff;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 95%;
+  white-space: pre-wrap;
 }
