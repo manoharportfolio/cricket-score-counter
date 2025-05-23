@@ -95,9 +95,16 @@ function startMatch() {
   document.getElementById("scheduleInfo").innerText = schedule || "Now";
   document.getElementById("matchSetup").style.display = "none";
   document.getElementById("scoreboard").style.display = "block";
+  if(getComputedStyle(document.getElementById("matchSetup")).display === "none"){
+document.getElementById("scoreboard").classList.add("score-board-style");
+document.getElementById("container").style.background ="#e9eb88";
+document.getElementById("titleBoard").classList.add("boardTitle");
+
+}
 
   updateDisplay();
 }
+
 
 function checkInningsOver() {
   if (balls >= oversLimit * 6 || wickets >= currentPlayers.length - 1) {
@@ -153,3 +160,4 @@ function endMatch() {
   `;
   alert(result);
 }
+
