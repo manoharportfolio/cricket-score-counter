@@ -105,27 +105,31 @@
     </div>
   </div>
 
- <script>
-  function loadMatch(matchId) {
-    const outputBox = document.getElementById("matchOutput");
-    const summaryBox = document.getElementById("matchSummary");
-    const ballTrackerBox = document.getElementById("ballTracker");
+ <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
 
-    const matchData = localStorage.getItem(matchId);
-    if (!matchData) {
-      summaryBox.innerText = "Match not found!";
-      ballTrackerBox.innerText = "";
-      return;
-    }
+  const firebaseConfig = {
+    apiKey: "AIzaSyDSSDoLtQwHGOjfo7JUB6ybDAFviaGASAA",
+    authDomain: "cricketscorelive-28d43.firebaseapp.com",
+    databaseURL: "https://cricketscorelive-28d43-default-rtdb.firebaseio.com",
+    projectId: "cricketscorelive-28d43",
+    storageBucket: "cricketscorelive-28d43.firebasestorage.app",
+    messagingSenderId: "444484251974",
+    appId: "1:444484251974:web:aec9e237181784ea7cf547"
+  };
 
-    const match = JSON.parse(matchData);
-    outputBox.style.display = "block";
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  function displayMatch(matchId, match) {
+    document.getElementById("matchOutput").style.display = "block";
 
     let summary = `📦 Match ID: ${matchId}\n\n`;
 
     if (match.firstInningsStats) {
       summary += `--- First Innings (${match.firstInningsStats.team}) ---\n`;
-      summary += `Score: ${match.firstInningsStats.runs}/${match.firstInningsStats.wickets} (${match.firstInningsStats.overs} overs)\n`;
+      summary += `Score: ${match.firstInningsStats.runs}/${match.firstInningsStats.wickets} (${match.firstInningsStats.overs})\n`;
       summary += `Batting:\n${match.firstInningsStats.players.map(p => `${p.name} - ${p.runs} (${p.balls})`).join("\n")}\n`;
       summary += `Bowling:\n${match.firstInningsStats.bowlers.map(b => `${b.name} - ${b.overs}, ${b.runs}R, ${b.wickets}W`).join("\n")}\n\n`;
     }
@@ -135,19 +139,56 @@
     summary += `Batting:\n${match.playerStats.map(p => `${p.name} - ${p.runs} (${p.balls}) ${p.out ? '' : '*'}`).join("\n")}\n`;
     summary += `Bowling:\n${match.bowlerStats.map(b => `${b.name} - ${b.overs}, ${b.runs}R, ${b.wickets}W`).join("\n")}\n`;
 
-    summaryBox.innerText = summary;
-    ballTrackerBox.innerText = `Ball Tracker: ${match.ballLog.join(" ")}`;
+    document.getElementById("matchSummary").innerText = summary;
+    document.getElementById("ballTracker").innerText = `Ball Tracker: ${match.ballLog.join(" ")}`;
   }
 
-  window.onload = function () {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("matchId");
-    if (id) {
-      document.getElementById("matchIdInput").value = id;
-      loadMatch(id);
-      setInterval(() => loadMatch(id), 5000); // 🔁 Auto-refresh every 5s
-    }
-  };
+ window.onload = function () {
+  const params = new URLSearchParams(window.location.search);
+  const matchId = params.get("matchId");
+
+  if (matchId) {
+    const matchRef = ref(db, 'matches/' + matchId);
+    onValue(matchRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        displayMatch(matchId, data);
+      } else {
+        document.getElementById("matchSummary").innerText = "Match not found.";
+      }
+    });
+  } else {
+    // Allow manual input
+    document.getElementById("matchOutput").style.display = "none";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Enter Match ID...";
+    input.id = "manualMatchId";
+
+    const button = document.createElement("button");
+    button.innerText = "Load Match";
+    button.onclick = function () {
+      const manualId = input.value.trim();
+      if (!manualId) return alert("Enter a valid Match ID");
+
+      const matchRef = ref(db, 'matches/' + manualId);
+      onValue(matchRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          displayMatch(manualId, data);
+        } else {
+          alert("Match not found!");
+        }
+      });
+    };
+
+    const container = document.querySelector(".container");
+    container.appendChild(input);
+    container.appendChild(button);
+  }
+};
+
 </script>
 
 </body>

@@ -64,8 +64,13 @@ function saveMatchData() {
     playerStats, bowlerStats, ballLog,
     firstInningsStats
   };
-  localStorage.setItem(matchId, JSON.stringify(data));
+
+  localStorage.setItem(matchId, JSON.stringify(data)); // optional for offline
+  if (window.sendToFirebase) {
+    window.sendToFirebase(matchId, data); // 🔥 send to Firebase
+  }
 }
+
 
 function isMatchOver() {
   return innings === 2 && (balls >= oversLimit * 6 || wickets >= currentPlayers.length - 1 || runs >= target);
