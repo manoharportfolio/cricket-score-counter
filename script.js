@@ -4,6 +4,7 @@ let team1 = "", team2 = "", battingTeam = "", bowlingTeam = "";
 let team1Players = [], team2Players = [], currentPlayers = [], currentBowlers = [];
 let playerStats = [], bowlerStats = [], ballLog = [];
 let firstInningsStats = null;
+let matchId = "";
 
 function updateSelectors() {
   const strikerSel = document.getElementById("strikerSelect");
@@ -51,43 +52,21 @@ function updateDisplay() {
   if (innings === 2) {
     document.getElementById("targetInfo").innerText = `Target: ${target} (${Math.floor((target - 1) / 6)}.${(target - 1) % 6} overs)`;
   }
+
+  saveMatchData(); // Save after every update
 }
 
-function startMatch() {
-  team1 = document.getElementById("teamAName").value;
-  team2 = document.getElementById("teamBName").value;
-  team1Players = document.getElementById("playersTeamA").value.split(",").map(x => x.trim());
-  team2Players = document.getElementById("playersTeamB").value.split(",").map(x => x.trim());
-  oversLimit = parseInt(document.getElementById("oversInput").value);
-  const schedule = document.getElementById("matchSchedule").value;
-  const tossWinner = document.getElementById("tossWinner").value;
-  const tossDecision = document.getElementById("tossDecision").value;
-
-  if ((tossWinner === "A" && tossDecision === "bat") || (tossWinner === "B" && tossDecision === "bowl")) {
-    battingTeam = team1;
-    bowlingTeam = team2;
-    currentPlayers = [...team1Players];
-    currentBowlers = [...team2Players];
-  } else {
-    battingTeam = team2;
-    bowlingTeam = team1;
-    currentPlayers = [...team2Players];
-    currentBowlers = [...team1Players];
-  }
-
-  playerStats = currentPlayers.map(name => ({ name, runs: 0, balls: 0, out: false }));
-  bowlerStats = currentBowlers.map(name => ({ name, overs: "0.0", runs: 0, wickets: 0, balls: 0 }));
-
-  strikerIndex = 0; nonStrikerIndex = 1; currentBowler = 0;
-
-  document.getElementById("matchTitle").innerText = `${team1} vs ${team2}`;
-  document.getElementById("scheduleInfo").innerText = schedule;
-  document.getElementById("matchSetup").style.display = "none";
-  document.getElementById("scoreboard").style.display = "block";
-
-  updateSelectors();
-  updateDisplay();
+function saveMatchData() {
+  const data = {
+    team1, team2, battingTeam, bowlingTeam,
+    innings, target, oversLimit, balls, runs, wickets,
+    strikerIndex, nonStrikerIndex, currentBowler,
+    playerStats, bowlerStats, ballLog,
+    firstInningsStats
+  };
+  localStorage.setItem(matchId, JSON.stringify(data));
 }
+
 function isMatchOver() {
   return innings === 2 && (balls >= oversLimit * 6 || wickets >= currentPlayers.length - 1 || runs >= target);
 }
@@ -137,7 +116,6 @@ function addExtra(type) {
   if (isMatchOver()) return;
   runs++;
   bowlerStats[currentBowler].runs++;
-
   if (type === "NB" || type === "WD") {
     ballLog.push(type);
   } else {
@@ -145,7 +123,6 @@ function addExtra(type) {
     balls++;
     updateBowlerOvers();
   }
-
   checkOverChange();
   updateDisplay();
 }
@@ -164,18 +141,16 @@ function checkOverChange() {
   }
 }
 
-// Prompts
+// New batsman prompt
 function showNewBatsmanPrompt() {
   const modal = document.getElementById("newBatsmanModal");
   const select = document.getElementById("newBatsmanSelect");
   select.innerHTML = "";
-
   currentPlayers.forEach((p, i) => {
     if (!playerStats[i].out && i !== nonStrikerIndex && i !== strikerIndex) {
       select.innerHTML += `<option value="${i}">${p}</option>`;
     }
   });
-
   modal.style.display = "flex";
 }
 
@@ -187,17 +162,16 @@ function confirmNewBatsman() {
   updateDisplay();
 }
 
+// New bowler prompt
 function showNewBowlerPrompt() {
   const modal = document.getElementById("newBowlerModal");
   const select = document.getElementById("newBowlerSelect");
   select.innerHTML = "";
-
   currentBowlers.forEach((p, i) => {
     if (i !== currentBowler) {
       select.innerHTML += `<option value="${i}">${p}</option>`;
     }
   });
-
   modal.style.display = "flex";
 }
 
@@ -207,10 +181,10 @@ function confirmNewBowler() {
   updateSelectors();
   updateDisplay();
 }
+
 function checkInningsOver() {
   if (balls >= oversLimit * 6 || wickets >= currentPlayers.length - 1 || (innings === 2 && runs >= target)) {
     if (innings === 1) {
-      // Save 1st innings stats
       firstInningsStats = {
         team: battingTeam,
         runs,
@@ -219,12 +193,10 @@ function checkInningsOver() {
         players: [...playerStats],
         bowlers: [...bowlerStats]
       };
-
-      // Prepare 2nd innings
       innings = 2;
       target = runs + 1;
-      balls = 0; runs = 0; wickets = 0; ballLog = [];
-
+      balls = runs = wickets = 0;
+      ballLog = [];
       if (battingTeam === team1) {
         battingTeam = team2;
         bowlingTeam = team1;
@@ -236,16 +208,12 @@ function checkInningsOver() {
         currentPlayers = [...team1Players];
         currentBowlers = [...team2Players];
       }
-
-      playerStats = currentPlayers.map(name => ({ name, runs: 0, balls: 0, out: false }));
-      bowlerStats = currentBowlers.map(name => ({ name, overs: "0.0", runs: 0, wickets: 0, balls: 0 }));
-      strikerIndex = 0;
-      nonStrikerIndex = 1;
-      currentBowler = 0;
-
+      playerStats = currentPlayers.map(n => ({ name: n, runs: 0, balls: 0, out: false }));
+      bowlerStats = currentBowlers.map(n => ({ name: n, overs: "0.0", runs: 0, wickets: 0, balls: 0 }));
+      strikerIndex = 0; nonStrikerIndex = 1; currentBowler = 0;
       updateSelectors();
       updateDisplay();
-      alert("End of First Innings. Target: " + target);
+      alert("Innings Over! Target is " + target);
     } else {
       endMatch();
     }
@@ -254,40 +222,74 @@ function checkInningsOver() {
 
 function endMatch() {
   let result = "";
-  if (runs >= target) {
-    result = `${battingTeam} won by ${10 - wickets} wickets`;
-  } else if (runs < target - 1) {
-    result = `${bowlingTeam} won by ${target - 1 - runs} runs`;
-  } else {
-    result = "Match Drawn!";
-  }
+  if (runs >= target) result = `${battingTeam} won by ${10 - wickets} wickets`;
+  else if (runs < target - 1) result = `${bowlingTeam} won by ${target - 1 - runs} runs`;
+  else result = "Match Drawn!";
 
-  // Second innings data
-  const secondInningsStats = {
+  const secondInnings = {
     team: battingTeam,
-    runs,
-    wickets,
+    runs, wickets,
     overs: `${Math.floor(balls / 6)}.${balls % 6}`,
-    players: [...playerStats],
-    bowlers: [...bowlerStats]
+    players: playerStats,
+    bowlers: bowlerStats
   };
 
   let summary = `🎯 Target: ${target}\n\n`;
 
   summary += `--- First Innings (${firstInningsStats.team}) ---\n`;
-  summary += `Score: ${firstInningsStats.runs}/${firstInningsStats.wickets} (${firstInningsStats.overs} overs)\n`;
-  summary += `Batting:\n${firstInningsStats.players.map(p => `${p.name} - ${p.runs} (${p.balls}) ${p.out ? '' : '*'}`).join("\n")}\n`;
-  summary += `Bowling:\n${firstInningsStats.bowlers.map(b => `${b.name} - ${b.overs} ov, ${b.runs} runs, ${b.wickets} wickets`).join("\n")}\n\n`;
+  summary += `Score: ${firstInningsStats.runs}/${firstInningsStats.wickets} (${firstInningsStats.overs})\n`;
+  summary += `Batting:\n${firstInningsStats.players.map(p => `${p.name} - ${p.runs} (${p.balls})`).join("\n")}\n`;
+  summary += `Bowling:\n${firstInningsStats.bowlers.map(b => `${b.name} - ${b.overs}, ${b.runs}R, ${b.wickets}W`).join("\n")}\n\n`;
 
-  summary += `--- Second Innings (${secondInningsStats.team}) ---\n`;
-  summary += `Score: ${secondInningsStats.runs}/${secondInningsStats.wickets} (${secondInningsStats.overs} overs)\n`;
-  summary += `Batting:\n${secondInningsStats.players.map(p => `${p.name} - ${p.runs} (${p.balls}) ${p.out ? '' : '*'}`).join("\n")}\n`;
-  summary += `Bowling:\n${secondInningsStats.bowlers.map(b => `${b.name} - ${b.overs} ov, ${b.runs} runs, ${b.wickets} wickets`).join("\n")}\n\n`;
+  summary += `--- Second Innings (${secondInnings.team}) ---\n`;
+  summary += `Score: ${secondInnings.runs}/${secondInnings.wickets} (${secondInnings.overs})\n`;
+  summary += `Batting:\n${secondInnings.players.map(p => `${p.name} - ${p.runs} (${p.balls})`).join("\n")}\n`;
+  summary += `Bowling:\n${secondInnings.bowlers.map(b => `${b.name} - ${b.overs}, ${b.runs}R, ${b.wickets}W`).join("\n")}\n\n`;
 
   summary += `🏆 Result: ${result}`;
-
   document.getElementById("matchSummary").innerText = summary;
   alert(result);
+}
+
+function startMatch() {
+  team1 = document.getElementById("teamAName").value;
+  team2 = document.getElementById("teamBName").value;
+  team1Players = document.getElementById("playersTeamA").value.split(",").map(x => x.trim());
+  team2Players = document.getElementById("playersTeamB").value.split(",").map(x => x.trim());
+  oversLimit = parseInt(document.getElementById("oversInput").value);
+  const schedule = document.getElementById("matchSchedule").value;
+  const tossWinner = document.getElementById("tossWinner").value;
+  const tossDecision = document.getElementById("tossDecision").value;
+
+  if ((tossWinner === "A" && tossDecision === "bat") || (tossWinner === "B" && tossDecision === "bowl")) {
+    battingTeam = team1; bowlingTeam = team2;
+    currentPlayers = [...team1Players];
+    currentBowlers = [...team2Players];
+  } else {
+    battingTeam = team2; bowlingTeam = team1;
+    currentPlayers = [...team2Players];
+    currentBowlers = [...team1Players];
+  }
+
+  playerStats = currentPlayers.map(name => ({ name, runs: 0, balls: 0, out: false }));
+  bowlerStats = currentBowlers.map(name => ({ name, overs: "0.0", runs: 0, wickets: 0, balls: 0 }));
+
+  strikerIndex = 0;
+  nonStrikerIndex = 1;
+  currentBowler = 0;
+
+  matchId = `${team1.replace(/\s+/g, '')}_vs_${team2.replace(/\s+/g, '')}_${Date.now()}`;
+  const liveLink = `live.html?matchId=${encodeURIComponent(matchId)}`;
+  document.getElementById("matchTitle").innerHTML += `<br><small>Match ID: <code>${matchId}</code></small>`;
+  document.getElementById("targetInfo").innerHTML += `<br><a href="${liveLink}" target="_blank">🔗 View Live Scoreboard</a>`;
+
+  document.getElementById("matchTitle").innerText = `${team1} vs ${team2}`;
+  document.getElementById("scheduleInfo").innerText = schedule;
+  document.getElementById("matchSetup").style.display = "none";
+  document.getElementById("scoreboard").style.display = "block";
+
+  updateSelectors();
+  updateDisplay();
 }
 
 function setStriker(index) {

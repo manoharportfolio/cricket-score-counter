@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Live Scoreboard & Card</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+    }
+
+    .navbar h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 40px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input {
+      padding: 10px;
+      font-size: 16px;
+      width: 80%;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #28a745;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .score-box {
+      margin-top: 30px;
+      background: #eef;
+      padding: 15px;
+      border-radius: 5px;
+    }
+
+    pre {
+      text-align: left;
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+      white-space: pre-wrap;
+    }
+    #ballTracker {
+  font-size: 16px;
+  background: #fff8dc;
+  border: 1px dashed #ccc;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <div class="navbar">
+    <h1>Live Scoreboard</h1>
+    <a href="home.html" style="color: white; text-decoration: none;">🏠 Home</a>
+  </div>
+
+ 
+  <div class="container">
+   <br>
+   
+
+    <div class="score-box" id="matchOutput" style="display: none;">
+      <h3>🏏 Live Match Details</h3>
+      <pre id="matchSummary">Loading match data...</pre>
+      <h3>Ball Tracker</h3>
+<div id="ballTracker" class="score-box" style="white-space:normal;"></div>
+
+    </div>
+  </div>
+
+ <script>
+  function loadMatch(matchId) {
+    const outputBox = document.getElementById("matchOutput");
+    const summaryBox = document.getElementById("matchSummary");
+    const ballTrackerBox = document.getElementById("ballTracker");
+
+    const matchData = localStorage.getItem(matchId);
+    if (!matchData) {
+      summaryBox.innerText = "Match not found!";
+      ballTrackerBox.innerText = "";
+      return;
+    }
+
+    const match = JSON.parse(matchData);
+    outputBox.style.display = "block";
+
+    let summary = `📦 Match ID: ${matchId}\n\n`;
+
+    if (match.firstInningsStats) {
+      summary += `--- First Innings (${match.firstInningsStats.team}) ---\n`;
+      summary += `Score: ${match.firstInningsStats.runs}/${match.firstInningsStats.wickets} (${match.firstInningsStats.overs} overs)\n`;
+      summary += `Batting:\n${match.firstInningsStats.players.map(p => `${p.name} - ${p.runs} (${p.balls})`).join("\n")}\n`;
+      summary += `Bowling:\n${match.firstInningsStats.bowlers.map(b => `${b.name} - ${b.overs}, ${b.runs}R, ${b.wickets}W`).join("\n")}\n\n`;
+    }
+
+    summary += `--- Second Innings (${match.battingTeam}) ---\n`;
+    summary += `Score: ${match.runs}/${match.wickets} (${Math.floor(match.balls / 6)}.${match.balls % 6} overs)\n`;
+    summary += `Batting:\n${match.playerStats.map(p => `${p.name} - ${p.runs} (${p.balls}) ${p.out ? '' : '*'}`).join("\n")}\n`;
+    summary += `Bowling:\n${match.bowlerStats.map(b => `${b.name} - ${b.overs}, ${b.runs}R, ${b.wickets}W`).join("\n")}\n`;
+
+    summaryBox.innerText = summary;
+    ballTrackerBox.innerText = `Ball Tracker: ${match.ballLog.join(" ")}`;
+  }
+
+  window.onload = function () {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("matchId");
+    if (id) {
+      document.getElementById("matchIdInput").value = id;
+      loadMatch(id);
+      setInterval(() => loadMatch(id), 5000); // 🔁 Auto-refresh every 5s
+    }
+  };
+</script>
+
+</body>
+</html>

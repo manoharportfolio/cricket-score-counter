@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cricket Score Counter</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+    }
+
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #007bff;
+      padding: 10px 20px;
+      color: white;
+    }
+
+    .navbar h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .account-menu {
+      position: relative;
+      display: inline-block;
+    }
+
+    .account-menu:hover .dropdown {
+      display: block;
+    }
+
+    .account-button {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .dropdown {
+      display: none;
+      position: absolute;
+      background-color: white;
+      min-width: 160px;
+      right: 0;
+      box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 4px;
+    }
+
+    .dropdown a {
+      color: black;
+      padding: 10px 16px;
+      text-decoration: none;
+      display: block;
+    }
+
+    .dropdown a:hover {
+      background-color: #f1f1f1;
+    }
+
+    .container {
+      text-align: center;
+      margin-top: 100px;
+    }
+
+    .btn {
+      margin: 20px;
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 5px;
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #218838;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <div class="navbar">
+    <h1>Cricket Score Counter</h1>
+    <div class="account-menu">
+      <button class="account-button">👤 Account</button>
+      <div class="dropdown">
+        <a href="#">My Profile</a>
+        <a href="#">Players List</a>
+        <a href="#">Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Homepage Actions -->
+  <div class="container">
+    <button class="btn" onclick="location.href='index.html'">Start Match</button>
+    <button class="btn" onclick="location.href='live.html'">Live Scoreboard & Card</button>
+  </div>
+</body>
+</html>
