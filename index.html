@@ -8,16 +8,46 @@
 </head>
 <body>
   <div class="container">
-    <h1>Box Cricket Score Counter</h1>
+    <!-- Match Setup Form -->
+    <div id="matchSetup">
+      <h1>Create Match</h1>
+      <input type="text" id="teamAName" placeholder="Team A Name" />
+      <textarea id="playersTeamA" placeholder="Team A Players (comma-separated)"></textarea><br>
 
-    <div class="teams">
-      <input type="text" id="teamA" placeholder="Team A Name" />
-      <input type="text" id="teamB" placeholder="Team B Name" />
+      <input type="text" id="teamBName" placeholder="Team B Name" />
+      <textarea id="playersTeamB" placeholder="Team B Players (comma-separated)"></textarea><br>
+
+      <input type="number" id="oversInput" placeholder="Number of Overs" min="1" /><br>
+      <input type="text" id="matchSchedule" placeholder="Match Time (e.g., Now, 5:00 PM)" /><br>
+
+      <h3>Toss Winner</h3>
+      <select id="tossWinner">
+        <option value="">Select Toss Winner</option>
+        <option value="A">Team A</option>
+        <option value="B">Team B</option>
+      </select>
+
+      <h3>Choose to:</h3>
+      <select id="tossDecision">
+        <option value="">Select Decision</option>
+        <option value="bat">Bat</option>
+        <option value="bowl">Bowl</option>
+      </select>
+
+      <button onclick="startMatch()">Start Match</button>
     </div>
 
-    <div class="scoreboard">
+    <!-- Scoreboard Section -->
+    <div id="scoreboard" style="display: none;">
+      <h1>Match: <span id="matchTitle"></span></h1>
+      <p><strong>Schedule:</strong> <span id="scheduleInfo"></span></p>
+      <p><strong>Innings:</strong> <span id="inningsInfo">Innings 1</span></p>
+
       <h2 id="scoreDisplay">Score: 0/0</h2>
       <h3 id="overDisplay">Overs: 0.0</h3>
+
+      <h4>Striker: <span id="strikerName"></span></h4>
+      <h4>Non-Striker: <span id="nonStrikerName"></span></h4>
 
       <div class="buttons">
         <button onclick="addRun(1)">+1 Run</button>
@@ -25,8 +55,16 @@
         <button onclick="addRun(6)">+6 Runs</button>
         <button onclick="addWicket()">Wicket</button>
         <button onclick="addBall()">Dot Ball</button>
+        <button onclick="addExtra('NB')">No Ball</button>
+        <button onclick="addExtra('WD')">Wide</button>
         <button onclick="resetMatch()">Reset</button>
       </div>
+
+      <h3>Ball Tracker</h3>
+      <div id="ballTracker" class="ball-tracker"></div>
+
+      <h3>Match Summary</h3>
+      <pre id="matchSummary"></pre>
     </div>
   </div>
 

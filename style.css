@@ -2,27 +2,26 @@ body {
   font-family: Arial, sans-serif;
   background: #f4f4f4;
   margin: 0;
-
   padding: 20px;
   text-align: center;
 }
 
 .container {
-    max-width: 500px;
-    margin: auto;
-    background: #77e253;
-    padding: 20px;
-    border-radius: 40%;
-}
-.container h1{
-    background: coral;
-    border-radius: 15px;
+  max-width: 650px;
+  margin: auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
-input {
+input, textarea, select {
   margin: 10px;
-  padding: 8px;
-  width: 40%;
+  padding: 10px;
+  width: 80%;
+  font-size: 16px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
 }
 
 button {
@@ -38,4 +37,14 @@ button {
 
 button:hover {
   background-color: #2980b9;
+}
+
+.ball-tracker {
+  margin-top: 10px;
+  font-size: 18px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fafafa;
+  min-height: 40px;
 }
