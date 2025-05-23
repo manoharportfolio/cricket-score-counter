@@ -4,16 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Cricket Score Counter</title>
-  <meta name="author" content="manoharportfolio">
-  <meta name="keywords" content="cricket score tracker, box cricket scoring, live cricket score app, informal cricket match app, cricket scoreboard web app">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏏</text></svg>">
-
-  <meta name="description" content="A responsive web application for keeping track of cricket scores during informal or box cricket matches with friends.
-This project is designed to simplify score tracking so that all players can view live match updates instead of relying on one person.">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
+    <!-- Match Setup -->
     <div id="matchSetup">
       <h1>Create Match</h1>
       <input type="text" id="teamAName" placeholder="Team A Name" />
@@ -42,6 +37,7 @@ This project is designed to simplify score tracking so that all players can view
       <button onclick="startMatch()">Start Match</button>
     </div>
 
+    <!-- Scoreboard -->
     <div id="scoreboard" style="display: none;">
       <h1><span id="matchTitle"></span></h1>
       <p><strong>Schedule:</strong> <span id="scheduleInfo"></span></p>
@@ -51,15 +47,17 @@ This project is designed to simplify score tracking so that all players can view
       <h2 id="scoreDisplay">Score: 0/0</h2>
       <h3 id="overDisplay">Overs: 0.0</h3>
 
-      <h4>Select Striker:
-        <select id="strikerSelect" onchange="setStriker(this.value)"></select>
-      </h4>
-      <h4>Select Non-Striker:
-        <select id="nonStrikerSelect" onchange="setNonStriker(this.value)"></select>
-      </h4>
-      <h4>Select Bowler:
-        <select id="bowlerSelect" onchange="setBowler(this.value)"></select>
-      </h4>
+      <div class="selectors">
+        <label>Select Striker: 
+          <select id="strikerSelect" onchange="setStriker(this.value)"></select>
+        </label>
+        <label>Select Non-Striker: 
+          <select id="nonStrikerSelect" onchange="setNonStriker(this.value)"></select>
+        </label>
+        <label>Select Bowler: 
+          <select id="bowlerSelect" onchange="setBowler(this.value)"></select>
+        </label>
+      </div>
 
       <div class="buttons">
         <button onclick="addRun(1)">+1 Run</button>
@@ -85,6 +83,23 @@ This project is designed to simplify score tracking so that all players can view
 
       <h3>Match Summary</h3>
       <pre id="matchSummary"></pre>
+    </div>
+
+    <!-- Modals -->
+    <div id="newBatsmanModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <h3>Select New Batsman</h3>
+        <select id="newBatsmanSelect"></select>
+        <button onclick="confirmNewBatsman()">Confirm</button>
+      </div>
+    </div>
+
+    <div id="newBowlerModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <h3>Select New Bowler</h3>
+        <select id="newBowlerSelect"></select>
+        <button onclick="confirmNewBowler()">Confirm</button>
+      </div>
     </div>
 
     <script src="script.js"></script>
