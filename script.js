@@ -1,6 +1,7 @@
 let innings = 1;
 let runs = 0, wickets = 0, balls = 0;
 let oversLimit = 0;
+let maxOversPerBowler = 2; // default
 let team1 = "", team2 = "";
 let battingTeam = "", bowlingTeam = "";
 let team1Players = [], team2Players = [];
@@ -18,6 +19,7 @@ window.startMatch = function () {
   team1Players = document.getElementById("playersTeamA").value.split(",").map(p => p.trim());
   team2Players = document.getElementById("playersTeamB").value.split(",").map(p => p.trim());
   oversLimit = parseInt(document.getElementById("oversInput").value);
+  let maxOversPerBowler = Math.ceil(oversLimit / 2);
   const schedule = document.getElementById("matchSchedule").value;
   const tossWinner = document.getElementById("tossWinner").value;
   const tossDecision = document.getElementById("tossDecision").value;
@@ -229,6 +231,21 @@ function populatePlayerDropdowns() {
   const strikerSelect = document.getElementById("strikerSelect");
   const nonStrikerSelect = document.getElementById("nonStrikerSelect");
   const bowlerSelect = document.getElementById("bowlerSelect");
+bowlerSelect.innerHTML = "";
+
+bowlerStats.forEach((b, index) => {
+  const option = document.createElement("option");
+  option.value = index;
+  option.text = `${b.name} (${Math.floor(b.balls / 6)}.${b.balls % 6} overs)`;
+  
+  if (Math.floor(b.balls / 6) >= maxOversPerBowler) {
+    option.disabled = true; // ✅ Prevent selection
+    option.text += " (Max)";
+  }
+
+  bowlerSelect.appendChild(option);
+});
+
 
   strikerSelect.innerHTML = "";
   nonStrikerSelect.innerHTML = "";
@@ -349,10 +366,19 @@ function setStriker(index) {
   updateDisplay();
 }
 function setBowler(index) {
-  currentBowler = bowlerStats[parseInt(index)];
-  disableScoringButtons(false); // ✅ Enable scoring after bowler is selected
+  const selected = parseInt(index);
+  const selectedBowler = bowlerStats[selected];
+
+  if (playerStats[strikerIndex].name === selectedBowler.name || playerStats[nonStrikerIndex].name === selectedBowler.name) {
+    alert("A player cannot bowl and bat at the same time!");
+    return;
+  }
+
+  currentBowler = selectedBowler;
+  disableScoringButtons(false);
   updateDisplay();
 }
+
 function setNonStriker(index) {
   nonStrikerIndex = parseInt(index);
   updateDisplay();
