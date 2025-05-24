@@ -21,6 +21,8 @@ window.startMatch = function () {
   const schedule = document.getElementById("matchSchedule").value;
   const tossWinner = document.getElementById("tossWinner").value;
   const tossDecision = document.getElementById("tossDecision").value;
+  document.getElementById("matchIdDisplay").innerText = `Match ID: ${matchId}`;
+
 
   if (!team1 || !team2 || team1Players.length < 2 || team2Players.length < 2 || isNaN(oversLimit)) {
     alert("Please fill all required fields with at least 2 players per team.");
@@ -101,6 +103,11 @@ window.addExtra = function (type) {
   updateDisplay();
   saveMatchData();
 };
+window.copyMatchId = function () {
+  navigator.clipboard.writeText(matchId)
+    .then(() => alert("Match ID copied to clipboard!"))
+    .catch(() => alert("Failed to copy Match ID."));
+};
 
 window.resetMatch = function () {
   location.reload();
@@ -135,21 +142,62 @@ function checkInningsOver() {
 }
 
 function endMatch() {
+  // Disable all buttons
+  document.querySelectorAll("button").forEach(btn => {
+    btn.disabled = true;
+    btn.style.backgroundColor = "#ccc";
+    btn.style.cursor = "not-allowed";
+  });
+
+  // Result
   const result = (runs > team1Score)
     ? `${battingTeam} won by ${10 - wickets} wickets`
     : (runs < team1Score)
       ? `${bowlingTeam} won by ${team1Score - runs} runs`
       : "Match Drawn!";
 
-  document.getElementById("matchSummary").innerText = `
-First Innings (${bowlingTeam}):
-${team1Score}/${currentPlayers.length - 1} in ${oversLimit} overs
+  // Batting Scorecard
+  const battingSummary = playerStats.map(p =>
+    `${p.name} - ${p.runs} (${p.balls})${p.out ? '' : ' *'}`
+  ).join('\n');
 
-Second Innings (${battingTeam}):
-${runs}/${wickets} in ${Math.floor(balls / 6)}.${balls % 6} overs
+  // Bowling Scorecard
+  const bowlingSummary = bowlerStats.map(b =>
+    `${b.name} - ${Math.floor(b.balls / 6)}.${b.balls % 6} overs, ${b.runs}R, ${b.wickets}W`
+  ).join('\n');
 
-Result: ${result}`;
+  // Match Summary Text
+  const summary = `
+🏏 Match ID: ${matchId}
+
+--- First Innings (${bowlingTeam}) ---
+Score: ${team1Score}/${playerStats.length - 1} in ${oversLimit} overs
+
+--- Second Innings (${battingTeam}) ---
+Score: ${runs}/${wickets} in ${Math.floor(balls / 6)}.${balls % 6} overs
+
+Batting:
+${battingSummary}
+
+Bowling:
+${bowlingSummary}
+
+Result: ${result}
+`;
+
+  // Update UI
+  document.getElementById("matchSummary").innerText = summary;
+  document.getElementById("matchIdDisplay").innerText = `Match ID: ${matchId}`;
+  // 🔍 Find top scorer
+const topPlayer = playerStats.reduce((max, p) => p.runs > max.runs ? p : max, { name: "", runs: 0 });
+
+const potm = `🏅 Player of the Match: ${topPlayer.name} (${topPlayer.runs} runs)`;
+
+// 📌 Append to summary
+document.getElementById("matchSummary").innerText += `\n\n${potm}`;
+
 }
+
 
 function swapStrikers() {
   [strikerIndex, nonStrikerIndex] = [nonStrikerIndex, strikerIndex];
@@ -245,17 +293,17 @@ function updateDisplay() {
   ).join("<br>");
   document.getElementById("playerStats").innerHTML = playersHTML;
 
-  const bowlersHTML = bowlerStats.map(b =>
-    `${b.name}: ${Math.floor(b.balls / 6)}.${b.balls % 6} overs, ${b.runs} runs, ${b.wickets} wickets`
-  ).join("<br>");
+ const bowlersHTML = bowlerStats.map(b =>
+  `${b.name}${currentBowler && b.name === currentBowler.name ? ' (Current)' : ''}: ${Math.floor(b.balls / 6)}.${b.balls % 6} overs, ${b.runs}R, ${b.wickets}W`
+).join("<br>");
   document.getElementById("bowlerStats").innerHTML = bowlersHTML;
 }
 
 function saveMatchData() {
   if (typeof window.sendToFirebase === 'function') {
-    const user = firebase.auth().currentUser; 
     window.sendToFirebase(matchId, {
-      createdBy: user ? user.uid : "", 
+      createdBy: window.currentUserUid || "",
+      matchId, // 👈 save it!
       team1, team2, battingTeam, bowlingTeam,
       innings, target, oversLimit, balls, runs, wickets,
       strikerIndex, nonStrikerIndex, currentBowler,
@@ -263,4 +311,5 @@ function saveMatchData() {
     });
   }
 }
+
 

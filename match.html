@@ -42,6 +42,10 @@
     <div id="scoreboard" style="display: none;">
       <h1><span id="matchTitle"></span></h1>
       <p><strong>Schedule:</strong> <span id="scheduleInfo"></span></p>
+      <p id="matchIdDisplay" style="font-weight: bold; color: #333;"></p>
+      <button id="copyMatchIdBtn" onclick="copyMatchId()">📋 Copy Match ID</button>
+
+
       <p><strong>Innings:</strong> <span id="inningsInfo"></span></p>
       <p id="targetInfo"></p>
 
@@ -122,12 +126,15 @@
       const auth = getAuth(app);
       const db = getDatabase(app);
 
-      onAuthStateChanged(auth, (user) => {
-        if (!user) {
-          alert("You must be logged in to access this page.");
-          window.location.href = "index.html";
-        }
-      });
+  onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    alert("You must be logged in to access this page.");
+    window.location.href = "index.html";
+  } else {
+    window.currentUserUid = user.uid; // 👈 expose globally
+  }
+});
+
 
       window.sendToFirebase = function (matchId, data) {
         set(ref(db, 'matches/' + matchId), data);
