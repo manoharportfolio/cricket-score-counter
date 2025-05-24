@@ -253,7 +253,9 @@ function updateDisplay() {
 
 function saveMatchData() {
   if (typeof window.sendToFirebase === 'function') {
+    const user = firebase.auth().currentUser; 
     window.sendToFirebase(matchId, {
+      createdBy: user ? user.uid : "", 
       team1, team2, battingTeam, bowlingTeam,
       innings, target, oversLimit, balls, runs, wickets,
       strikerIndex, nonStrikerIndex, currentBowler,
@@ -261,3 +263,4 @@ function saveMatchData() {
     });
   }
 }
+
