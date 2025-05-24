@@ -50,15 +50,214 @@ window.startMatch = function () {
   saveMatchData();
 };
 
+window.addRun = function (value) {
+  if (isMatchOver() || !currentBowler) return alert("Please select a bowler first.");
+  runs += value;
+  balls++;
+  ballLog.push(value);
+  playerStats[strikerIndex].runs += value;
+  playerStats[strikerIndex].balls++;
+  currentBowler.balls++;
+  currentBowler.runs += value;
+  if (value % 2 !== 0) swapStrikers();
+  checkOverComplete();
+  checkInningsOver();
+  updateDisplay();
+  saveMatchData();
+};
 
-window.addRun = addRun;
-window.addWicket = addWicket;
-window.addBall = addBall;
-window.addExtra = addExtra;
-window.resetMatch = resetMatch;
-window.setStriker = setStriker;
-window.setNonStriker = setNonStriker;
-window.setBowler = setBowler;
-window.confirmNewBatsman = confirmNewBatsman;
-window.confirmNewBowler = confirmNewBowler;
+window.addWicket = function () {
+  if (isMatchOver() || !currentBowler) return alert("Please select a bowler first.");
+  ballLog.push("W");
+  balls++;
+  wickets++;
+  currentBowler.balls++;
+  currentBowler.wickets++;
+  playerStats[strikerIndex].out = true;
+  updateDisplay();
+  showNewBatsmanModal();
+  checkOverComplete();
+  checkInningsOver();
+  saveMatchData();
+};
 
+window.addBall = function () {
+  if (isMatchOver() || !currentBowler) return alert("Please select a bowler first.");
+  ballLog.push(".");
+  balls++;
+  playerStats[strikerIndex].balls++;
+  currentBowler.balls++;
+  checkOverComplete();
+  checkInningsOver();
+  updateDisplay();
+  saveMatchData();
+};
+
+window.addExtra = function (type) {
+  if (isMatchOver() || !currentBowler) return alert("Please select a bowler first.");
+  runs++;
+  ballLog.push(type);
+  currentBowler.runs++;
+  updateDisplay();
+  saveMatchData();
+};
+
+window.resetMatch = function () {
+  location.reload();
+};
+
+function isMatchOver() {
+  return innings === 2 && (balls >= oversLimit * 6 || wickets >= currentPlayers.length - 1);
+}
+
+function checkOverComplete() {
+  if (balls % 6 === 0) showNewBowlerModal();
+}
+
+function checkInningsOver() {
+  if (balls >= oversLimit * 6 || wickets >= currentPlayers.length - 1) {
+    if (innings === 1) {
+      team1Score = runs;
+      target = team1Score + 1;
+      innings = 2;
+      runs = 0; wickets = 0; balls = 0;
+      strikerIndex = 0; nonStrikerIndex = 1;
+      currentPlayers = (battingTeam === team1) ? [...team2Players] : [...team1Players];
+      battingTeam = (battingTeam === team1) ? team2 : team1;
+      bowlingTeam = (bowlingTeam === team1) ? team2 : team1;
+      playerStats = currentPlayers.map(p => ({ name: p, runs: 0, balls: 0, out: false }));
+      bowlerStats = (bowlingTeam === team1 ? team1Players : team2Players).map(p => ({ name: p, overs: 0, balls: 0, runs: 0, wickets: 0 }));
+      alert("Innings over. Next team will bat.");
+    } else {
+      endMatch();
+    }
+  }
+}
+
+function endMatch() {
+  const result = (runs > team1Score)
+    ? `${battingTeam} won by ${10 - wickets} wickets`
+    : (runs < team1Score)
+      ? `${bowlingTeam} won by ${team1Score - runs} runs`
+      : "Match Drawn!";
+
+  document.getElementById("matchSummary").innerText = `
+First Innings (${bowlingTeam}):
+${team1Score}/${currentPlayers.length - 1} in ${oversLimit} overs
+
+Second Innings (${battingTeam}):
+${runs}/${wickets} in ${Math.floor(balls / 6)}.${balls % 6} overs
+
+Result: ${result}`;
+}
+
+function swapStrikers() {
+  [strikerIndex, nonStrikerIndex] = [nonStrikerIndex, strikerIndex];
+}
+
+function populatePlayerDropdowns() {
+  const strikerSelect = document.getElementById("strikerSelect");
+  const nonStrikerSelect = document.getElementById("nonStrikerSelect");
+  const bowlerSelect = document.getElementById("bowlerSelect");
+
+  strikerSelect.innerHTML = "";
+  nonStrikerSelect.innerHTML = "";
+  bowlerSelect.innerHTML = "";
+
+  currentPlayers.forEach((player, index) => {
+    strikerSelect.innerHTML += `<option value="${index}">${player}</option>`;
+    nonStrikerSelect.innerHTML += `<option value="${index}">${player}</option>`;
+  });
+
+  const bowlers = bowlingTeam === team1 ? team1Players : team2Players;
+  bowlers.forEach((player, index) => {
+    bowlerSelect.innerHTML += `<option value="${index}">${player}</option>`;
+  });
+}
+
+window.setStriker = function (index) {
+  strikerIndex = parseInt(index);
+  updateDisplay();
+};
+
+window.setNonStriker = function (index) {
+  nonStrikerIndex = parseInt(index);
+  updateDisplay();
+};
+
+window.setBowler = function (index) {
+  const bowlers = bowlingTeam === team1 ? team1Players : team2Players;
+  const selectedName = bowlers[index];
+  currentBowler = bowlerStats.find(b => b.name === selectedName);
+  updateDisplay();
+};
+
+function showNewBatsmanModal() {
+  const modal = document.getElementById("newBatsmanModal");
+  const select = document.getElementById("newBatsmanSelect");
+  select.innerHTML = "";
+
+  currentPlayers.forEach((p, i) => {
+    if (!playerStats[i].out && i !== strikerIndex && i !== nonStrikerIndex) {
+      select.innerHTML += `<option value="${i}">${p}</option>`;
+    }
+  });
+
+  modal.style.display = "block";
+}
+
+window.confirmNewBatsman = function () {
+  const newIndex = parseInt(document.getElementById("newBatsmanSelect").value);
+  strikerIndex = newIndex;
+  document.getElementById("newBatsmanModal").style.display = "none";
+  updateDisplay();
+};
+
+function showNewBowlerModal() {
+  const modal = document.getElementById("newBowlerModal");
+  const select = document.getElementById("newBowlerSelect");
+  select.innerHTML = "";
+
+  const bowlers = bowlingTeam === team1 ? team1Players : team2Players;
+  bowlers.forEach((p, i) => {
+    select.innerHTML += `<option value="${i}">${p}</option>`;
+  });
+
+  modal.style.display = "block";
+}
+
+window.confirmNewBowler = function () {
+  const newIndex = parseInt(document.getElementById("newBowlerSelect").value);
+  setBowler(newIndex);
+  document.getElementById("newBowlerModal").style.display = "none";
+};
+
+function updateDisplay() {
+  document.getElementById("scoreDisplay").innerText = `Score: ${runs}/${wickets}`;
+  document.getElementById("overDisplay").innerText = `Overs: ${Math.floor(balls / 6)}.${balls % 6}`;
+  document.getElementById("inningsInfo").innerText = `Innings ${innings}`;
+  document.getElementById("targetInfo").innerText = innings === 2 ? `Target: ${target}` : "";
+
+  document.getElementById("ballTracker").innerText = ballLog.join(" ");
+
+  const playersHTML = playerStats.map((p, i) =>
+    `${p.name}${i === strikerIndex ? " (Striker)" : i === nonStrikerIndex ? " (Non-Striker)" : ""}: ${p.runs} (${p.balls})${p.out ? " OUT" : ""}`
+  ).join("<br>");
+  document.getElementById("playerStats").innerHTML = playersHTML;
+
+  const bowlersHTML = bowlerStats.map(b =>
+    `${b.name}: ${Math.floor(b.balls / 6)}.${b.balls % 6} overs, ${b.runs} runs, ${b.wickets} wickets`
+  ).join("<br>");
+  document.getElementById("bowlerStats").innerHTML = bowlersHTML;
+}
+
+function saveMatchData() {
+  if (typeof window.sendToFirebase === 'function') {
+    window.sendToFirebase(matchId, {
+      team1, team2, battingTeam, bowlingTeam,
+      innings, target, oversLimit, balls, runs, wickets,
+      strikerIndex, nonStrikerIndex, currentBowler,
+      playerStats, bowlerStats, ballLog
+    });
+  }
+}
