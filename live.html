@@ -106,28 +106,21 @@
   </div>
 
  <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-auth.js";
+ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDSSDoLtQwHGOjfo7JUB6ybDAFviaGASAA",
-  authDomain: "cricketscorelive-28d43.firebaseapp.com",
-  projectId: "cricketscorelive-28d43",
-  storageBucket: "cricketscorelive-28d43.appspot.com",
-  messagingSenderId: "444484251974",
-  appId: "1:444484251974:web:aec9e237181784ea7cf547"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyDSSDoLtQwHGOjfo7JUB6ybDAFviaGASAA",
+    authDomain: "cricketscorelive-28d43.firebaseapp.com",
+    databaseURL: "https://cricketscorelive-28d43-default-rtdb.firebaseio.com",
+    projectId: "cricketscorelive-28d43",
+    storageBucket: "cricketscorelive-28d43.firebasestorage.app",
+    messagingSenderId: "444484251974",
+    appId: "1:444484251974:web:aec9e237181784ea7cf547"
+  };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-// 🔐 Block access if not logged in
-onAuthStateChanged(auth, (user) => {
-  if (!user) {
-    alert("You must be logged in to access this page.");
-    window.location.href = "index.html"; // redirect to login/home
-  }
-});
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
 
   function displayMatch(matchId, match) {
