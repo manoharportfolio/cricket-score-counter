@@ -178,17 +178,23 @@
   const logoutBtn = document.getElementById("logoutBtn");
 
   // Auth state listener
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      userInfo.innerText = `Logged in as: ${user.email}`;
-      logoutBtn.style.display = "inline-block";
-      document.getElementById("startBtn").style.display = "inline-block";
-    } else {
-      userInfo.innerText = "Not logged in.";
-      logoutBtn.style.display = "none";
-      document.getElementById("startBtn").style.display = "none";
-    }
-  });
+onAuthStateChanged(auth, (user) => {
+  const authSection = document.getElementById("authSection");
+  const startBtn = document.getElementById("startBtn");
+
+  if (user) {
+    userInfo.innerText = `Logged in as: ${user.email}`;
+    logoutBtn.style.display = "inline-block";
+    startBtn.style.display = "inline-block";
+    authSection.style.display = "none"; // ✅ hides auth form
+  } else {
+    userInfo.innerText = "Not logged in.";
+    logoutBtn.style.display = "none";
+    startBtn.style.display = "none";
+    authSection.style.display = "block";
+  }
+});
+
 
   window.signup = function () {
     createUserWithEmailAndPassword(auth, email.value, password.value)

@@ -68,20 +68,27 @@ window.addRun = function (value) {
   saveMatchData();
 };
 
-window.addWicket = function () {
-  if (isMatchOver() || !currentBowler) return alert("Please select a bowler first.");
+function addWicket() {
+  if (isMatchOver()) return;
+  
   ballLog.push("W");
-  balls++;
   wickets++;
-  currentBowler.balls++;
-  currentBowler.wickets++;
+  balls++;
+
+  // Mark batsman as out
   playerStats[strikerIndex].out = true;
+
+  // Show “Out” near striker dropdown
+  const strikerDropdown = document.getElementById("strikerSelect");
+  strikerDropdown.options[strikerDropdown.selectedIndex].text += " (Out)";
+
+  // Disable scoring buttons until user selects a new striker
+  disableScoringButtons(true);
+
   updateDisplay();
-  showNewBatsmanModal();
-  checkOverComplete();
   checkInningsOver();
-  saveMatchData();
-};
+}
+
 
 window.addBall = function () {
   if (isMatchOver() || !currentBowler) return alert("Please select a bowler first.");
@@ -130,6 +137,7 @@ function checkInningsOver() {
       runs = 0; wickets = 0; balls = 0;
       strikerIndex = 0; nonStrikerIndex = 1;
       currentPlayers = (battingTeam === team1) ? [...team2Players] : [...team1Players];
+      populatePlayerDropdowns();
       battingTeam = (battingTeam === team1) ? team2 : team1;
       bowlingTeam = (bowlingTeam === team1) ? team2 : team1;
       playerStats = currentPlayers.map(p => ({ name: p, runs: 0, balls: 0, out: false }));
@@ -148,6 +156,11 @@ function endMatch() {
     btn.style.backgroundColor = "#ccc";
     btn.style.cursor = "not-allowed";
   });
+const matchOverNotice = document.createElement("h2");
+matchOverNotice.innerText = "🏁 Match Over";
+matchOverNotice.style.color = "red";
+matchOverNotice.style.marginTop = "20px";
+document.getElementById("scoreboard").appendChild(matchOverNotice);
 
   // Result
   const result = (runs > team1Score)
@@ -189,12 +202,21 @@ Result: ${result}
   document.getElementById("matchSummary").innerText = summary;
   document.getElementById("matchIdDisplay").innerText = `Match ID: ${matchId}`;
   // 🔍 Find top scorer
-const topPlayer = playerStats.reduce((max, p) => p.runs > max.runs ? p : max, { name: "", runs: 0 });
+const firstInningsPlayers = innings === 2 ? [...team1Players] : [...team2Players];
+const secondInningsPlayers = currentPlayers;
 
-const potm = `🏅 Player of the Match: ${topPlayer.name} (${topPlayer.runs} runs)`;
+const potm1 = playerStats.slice(0, firstInningsPlayers.length)
+  .reduce((max, p) => p.runs > max.runs ? p : max, { name: "", runs: 0 });
 
-// 📌 Append to summary
-document.getElementById("matchSummary").innerText += `\n\n${potm}`;
+const potm2 = playerStats.slice(firstInningsPlayers.length)
+  .reduce((max, p) => p.runs > max.runs ? p : max, { name: "", runs: 0 });
+
+document.getElementById("matchSummary").innerText += `
+
+🏅 Player of the Match (First Innings): ${potm1.name} (${potm1.runs} runs)
+🏅 Player of the Match (Second Innings): ${potm2.name} (${potm2.runs} runs)
+`;
+
 
 }
 
@@ -215,12 +237,14 @@ function populatePlayerDropdowns() {
   currentPlayers.forEach((player, index) => {
     strikerSelect.innerHTML += `<option value="${index}">${player}</option>`;
     nonStrikerSelect.innerHTML += `<option value="${index}">${player}</option>`;
+    
   });
 
   const bowlers = bowlingTeam === team1 ? team1Players : team2Players;
   bowlers.forEach((player, index) => {
     bowlerSelect.innerHTML += `<option value="${index}">${player}</option>`;
   });
+ 
 }
 
 window.setStriker = function (index) {
@@ -297,6 +321,10 @@ function updateDisplay() {
   `${b.name}${currentBowler && b.name === currentBowler.name ? ' (Current)' : ''}: ${Math.floor(b.balls / 6)}.${b.balls % 6} overs, ${b.runs}R, ${b.wickets}W`
 ).join("<br>");
   document.getElementById("bowlerStats").innerHTML = bowlersHTML;
+  if (currentBowler && currentBowler.balls % 6 === 0 && currentBowler.balls !== 0) {
+  disableScoringButtons(true); // Over complete, wait for new bowler
+}
+
 }
 
 function saveMatchData() {
@@ -311,5 +339,37 @@ function saveMatchData() {
     });
   }
 }
+function setStriker(index) {
+  strikerIndex = parseInt(index);
+  if (!playerStats[strikerIndex].out) {
+    disableScoringButtons(false); // ✅ Enable scoring when batsman is valid
+  } else {
+    disableScoringButtons(true);  // Still out? Keep disabled
+  }
+  updateDisplay();
+}
+function setBowler(index) {
+  currentBowler = bowlerStats[parseInt(index)];
+  disableScoringButtons(false); // ✅ Enable scoring after bowler is selected
+  updateDisplay();
+}
+function setNonStriker(index) {
+  nonStrikerIndex = parseInt(index);
+  updateDisplay();
+}
+
+
+function disableScoringButtons(disable) {
+  const ids = ["addRun1", "addRun4", "addRun6", "addWicket", "addBall", "addExtraNB", "addExtraWD", "addExtraB", "addExtraLB"];
+  ids.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.disabled = disable;
+      btn.style.backgroundColor = disable ? "#ccc" : "#3498db";
+      btn.style.cursor = disable ? "not-allowed" : "pointer";
+    }
+  });
+}
+
 
 
