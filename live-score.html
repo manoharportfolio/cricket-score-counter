@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Score - Cricket Score Counter</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .scoreboard {
+      background-color: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.08);
+      padding: 30px;
+      margin-top: 40px;
+    }
+    .score {
+      font-size: 3rem;
+      font-weight: 700;
+      color: #0d6efd;
+    }
+    .overs {
+      font-size: 1.25rem;
+      margin-bottom: 20px;
+    }
+    .btn-score {
+      min-width: 100px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold text-primary" href="index.html">🏏 ScoreCounter</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="/index.html">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active fw-bold text-dark" href="/live-score.html">Live Score</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-dark" href="/about.html">About</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Live Scoreboard -->
+  <div class="container text-center">
+    <div class="scoreboard">
+      <h2 class="mb-4 text-dark">Live Match Score</h2>
+      <div class="score mb-2" id="score">0 / 0</div>
+      <div class="overs" id="overs">Overs: 0.0</div>
+
+      <div class="d-flex justify-content-center flex-wrap">
+        <button class="btn btn-success btn-score" onclick="addRuns(1)">+1 Run</button>
+        <button class="btn btn-success btn-score" onclick="addRuns(2)">+2 Runs</button>
+        <button class="btn btn-success btn-score" onclick="addRuns(4)">+4 Runs</button>
+        <button class="btn btn-success btn-score" onclick="addRuns(6)">+6 Runs</button>
+        <button class="btn btn-danger btn-score" onclick="addWicket()">Wicket</button>
+        <button class="btn btn-secondary btn-score" onclick="addBall()">+1 Ball</button>
+        <button class="btn btn-warning btn-score" onclick="resetScore()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript for scoring -->
+  <script>
+    let runs = 0;
+    let wickets = 0;
+    let balls = 0;
+
+    function updateScoreboard() {
+      document.getElementById('score').innerText = `${runs} / ${wickets}`;
+      const overs = Math.floor(balls / 6) + '.' + (balls % 6);
+      document.getElementById('overs').innerText = `Overs: ${overs}`;
+    }
+
+    function addRuns(r) {
+      runs += r;
+      balls += 1;
+      updateScoreboard();
+    }
+
+    function addWicket() {
+      if (wickets < 10) {
+        wickets += 1;
+        balls += 1;
+        updateScoreboard();
+      }
+    }
+
+    function addBall() {
+      balls += 1;
+      updateScoreboard();
+    }
+
+    function resetScore() {
+      runs = 0;
+      wickets = 0;
+      balls = 0;
+      updateScoreboard();
+    }
+
+    updateScoreboard();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
