@@ -426,7 +426,7 @@
             
             // Sign in the user. Since a custom firebase config is used, we must use anonymous sign in.
             try {
-                showLoading('Authenticating...');
+                await showLoading('Authenticating...');
                 await signInAnonymously(auth);
                 console.log("Authentication successful.");
             } catch (error) {
@@ -445,7 +445,7 @@
             const teamBName = document.getElementById('teamBNameInput').value.trim() || 'Team B';
             const oversPerInning = parseInt(document.getElementById('oversInput').value) || 5;
 
-            showLoading('Creating Match...');
+            await showLoading('Creating Match...');
             currentMatchId = generateMatchId();
             
             // This is the initial data structure for a new match
@@ -468,7 +468,7 @@
                 const matchRef = doc(db, `matches`, currentMatchId);
                 await setDoc(matchRef, newMatchData);
                 
-                createMatchModal.hide();
+                await hideModal(createMatchModal);
                 await listenToMatch(currentMatchId);
             } catch(error) {
                 console.error("Error creating match:", error);
@@ -487,7 +487,7 @@
                 alert("Please enter a Match ID.");
                 return;
             }
-            showLoading('Joining Match...');
+            await showLoading('Joining Match...');
             try {
                 const matchRef = doc(db, `matches`, matchId);
                 const matchSnap = await getDoc(matchRef);
@@ -520,7 +520,6 @@
             
             // onSnapshot listens for any changes to the document and runs the callback.
             unsubscribeFromMatch = onSnapshot(matchRef, (doc) => {
-                console.log("Received match update:", doc.data());
                 if (doc.exists()) {
                     matchData = doc.data();
                     renderUI(); // Re-draw the entire UI based on the new data
@@ -561,7 +560,7 @@
                 document.getElementById('newBatsmanSelect').style.display = 'none';
                 document.getElementById('newBowlerSelect').style.display = 'none';
                 document.getElementById('playerSelectTitle').textContent = `Start Inning ${inningNumber}: ${battingTeam}`;
-                playerSelectModal.show();
+                showModal(playerSelectModal);
             } else {
                 document.getElementById('scoreboardView').style.display = 'block';
                 renderScoreboard();
@@ -664,10 +663,12 @@
         /**
          * Handles the initial selection of players or new players mid-game.
          */
-        function handlePlayerSelection() {
+        async function handlePlayerSelection() {
             const inning = matchData.innings[matchData.currentInning];
             const inningPath = `innings.${matchData.currentInning}`;
             
+            await hideModal(playerSelectModal);
+
             if (matchData.gameState === 'setup') {
                 const strikerName = document.getElementById('openingStrikerInput').value.trim();
                 const nonStrikerName = document.getElementById('openingNonStrikerInput').value.trim();
@@ -687,10 +688,7 @@
                     [`${inningPath}.bowlersUsed`]: [...new Set([...inning.bowlersUsed, bowlerName])]
                 };
                 
-                playerSelectModal.hide();
-                document.getElementById('playerSelectModal').addEventListener('hidden.bs.modal', () => {
-                    updateMatchData(updates);
-                }, { once: true });
+                await updateMatchData(updates);
                 
             } else if (matchData.gameState === 'wicket_wait') {
                 const newBatsmanName = document.getElementById('newBatsmanInput').value.trim();
@@ -707,10 +705,7 @@
                 }
                 updates[`${inningPath}.battingOrder`] = [...new Set([...inning.battingOrder, newBatsmanName])];
                 
-                playerSelectModal.hide();
-                document.getElementById('playerSelectModal').addEventListener('hidden.bs.modal', () => {
-                     updateMatchData(updates);
-                }, { once: true });
+                await updateMatchData(updates);
             
             } else if(matchData.gameState === 'over_end_wait') {
                 const newBowlerName = document.getElementById('newBowlerInput').value.trim();
@@ -726,10 +721,7 @@
 
                 updates[`${inningPath}.bowlersUsed`] = [...new Set([...inning.bowlersUsed, newBowlerName])];
 
-                playerSelectModal.hide();
-                document.getElementById('playerSelectModal').addEventListener('hidden.bs.modal', () => {
-                    updateMatchData(updates);
-                }, { once: true });
+                await updateMatchData(updates);
             }
         }
         
@@ -797,7 +789,7 @@
                 document.getElementById('newBowlerSelect').style.display = 'block';
                 document.getElementById('newBowlerInput').value = '';
                 document.getElementById('playerSelectTitle').textContent = `End of Over. Select New Bowler.`;
-                playerSelectModal.show();
+                await showModal(playerSelectModal);
             } else {
                  await updateMatchData(updates);
             }
@@ -833,7 +825,7 @@
         /**
          * Handles the first part of a wicket event (selecting which batsman is out).
          */
-        function handleWicket() {
+        async function handleWicket() {
             if (matchData.gameState !== 'live') return;
             
             const outBatsmanRadio = document.querySelector('input[name="outBatsmanRadio"]:checked');
@@ -857,12 +849,13 @@
             outBatsmanData.isOut = true;
             updates[`${inningPath}.battingStats.${outBatsmanData.name}`] = outBatsmanData;
             
-            wicketModal.hide();
+            await hideModal(wicketModal);
             
             // Check for end of innings
             if (inning.wickets + 1 >= 10) {
                  updates['gameState'] = 'inning_break';
-                 updateMatchData(updates).then(() => endInnings());
+                 await updateMatchData(updates);
+                 endInnings();
                  return;
             }
 
@@ -870,22 +863,20 @@
             updates['gameState'] = 'wicket_wait';
             updates['outBatsman'] = outBatsman; // Track who got out
             
-            document.getElementById('wicketModal').addEventListener('hidden.bs.modal', () => {
-                updateMatchData(updates).then(() => {
-                    document.getElementById('initialPlayerSelect').style.display = 'none';
-                    document.getElementById('newBatsmanSelect').style.display = 'block';
-                    document.getElementById('newBowlerSelect').style.display = 'none';
-                    document.getElementById('newBatsmanInput').value = '';
-                    document.getElementById('playerSelectTitle').textContent = `Wicket! Who is the next batsman?`;
-                    playerSelectModal.show();
-                });
-            }, { once: true });
+            await updateMatchData(updates);
+
+            document.getElementById('initialPlayerSelect').style.display = 'none';
+            document.getElementById('newBatsmanSelect').style.display = 'block';
+            document.getElementById('newBowlerSelect').style.display = 'none';
+            document.getElementById('newBatsmanInput').value = '';
+            document.getElementById('playerSelectTitle').textContent = `Wicket! Who is the next batsman?`;
+            await showModal(playerSelectModal);
         }
         
         /**
          * Ends the current inning and sets up for the next one, or ends the match.
          */
-        function endInnings() {
+        async function endInnings() {
             const inningPath = `innings.${matchData.currentInning}`;
             const inning = matchData.innings[matchData.currentInning];
             const updates = { gameState: 'inning_break' };
@@ -899,22 +890,22 @@
                 // Move to second inning
                 updates.currentInning = 2;
                 updates.gameState = 'setup'; // Go to setup to select opening players for 2nd inning
-                updateMatchData(updates);
+                await updateMatchData(updates);
             } else {
                 // End of match
                 updates.gameState = 'finished';
-                updateMatchData(updates);
+                await updateMatchData(updates);
             }
         }
         
-        function swapBatsmen() {
+        async function swapBatsmen() {
             if (matchData.gameState !== 'live') return;
             const inningPath = `innings.${matchData.currentInning}`;
             const inning = matchData.innings[matchData.currentInning];
             const updates = {};
             updates[`${inningPath}.striker`] = inning.nonStriker;
             updates[`${inningPath}.nonStriker`] = inning.striker;
-            updateMatchData(updates);
+            await updateMatchData(updates);
         }
 
         // --- UTILITY FUNCTIONS ---
@@ -945,7 +936,7 @@
          */
         async function updateMatchData(updates) {
             if (!currentMatchId) return;
-            showLoading('Updating...');
+            await showLoading('Updating...');
             const matchRef = doc(db, "matches", currentMatchId);
             try {
                 // Use updateDoc for modifying fields in an existing document.
@@ -1011,25 +1002,37 @@
             }, 1500);
         }
         
-        function showLoading(text = 'Loading...') {
-            if (loadingModal && !loadingModal._isShown) {
-               document.getElementById('loadingText').textContent = text;
-               loadingModal.show();
-            }
-        }
+        // --- Modal Helper Functions to fix aria-hidden error ---
         
-        function hideLoading() {
-             return new Promise(resolve => {
-                if (loadingModal && loadingModal._isShown) {
-                    const loadingModalEl = document.getElementById('loadingModal');
-                    loadingModalEl.addEventListener('hidden.bs.modal', (e) => {
-                        resolve();
-                    }, { once: true });
-                    loadingModal.hide();
+        function showModal(modalInstance) {
+            return new Promise(resolve => {
+                if (modalInstance && !modalInstance._isShown) {
+                    modalInstance._element.addEventListener('shown.bs.modal', () => resolve(), { once: true });
+                    modalInstance.show();
                 } else {
                     resolve();
                 }
             });
+        }
+
+        function hideModal(modalInstance) {
+            return new Promise(resolve => {
+                if (modalInstance && modalInstance._isShown) {
+                    modalInstance._element.addEventListener('hidden.bs.modal', () => resolve(), { once: true });
+                    modalInstance.hide();
+                } else {
+                    resolve();
+                }
+            });
+        }
+
+        async function showLoading(text = 'Loading...') {
+            document.getElementById('loadingText').textContent = text;
+            await showModal(loadingModal);
+        }
+
+        async function hideLoading() {
+            await hideModal(loadingModal);
         }
         
         function createScorecardHTML(inningData) {
