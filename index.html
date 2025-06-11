@@ -93,7 +93,7 @@
             background-color: #e0e7ff;
         }
 
-        #scoreboardView, #matchEndView { display: none; }
+        #authView, #homeView, #scoreboardView, #matchEndView, #scoringControls, #logoutBtn { display: none; }
         
         /* --- Custom Modal Styles --- */
         .custom-modal-backdrop {
@@ -186,12 +186,41 @@
 
     <!-- Main Container -->
     <div class="main-container">
+
+        <!-- Authentication View -->
+        <div id="authView">
+             <div class="card text-center shadow-lg">
+                <div class="card-body p-lg-5 p-4">
+                    <h1 class="card-title fw-bold display-5 mb-3">Welcome to Cricket Scorer</h1>
+                    <p class="text-muted mb-4">Please sign in or register to continue.</p>
+                    <div class="row justify-content-center">
+                        <div class="col-lg-8">
+                             <div class="mb-3">
+                                <input type="email" id="emailInput" class="form-control form-control-lg" placeholder="Email">
+                            </div>
+                            <div class="mb-3">
+                                <input type="password" id="passwordInput" class="form-control form-control-lg" placeholder="Password">
+                            </div>
+                            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                                <button id="loginBtn" class="btn btn-primary btn-lg">Login</button>
+                                <button id="registerBtn" class="btn btn-outline-secondary btn-lg">Register</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Home View: Create or Join a Match -->
         <div id="homeView">
+             <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="fw-bold mb-0">Dashboard</h2>
+                <button id="logoutBtn" class="btn btn-sm btn-outline-danger">Logout</button>
+            </div>
             <div class="card text-center shadow-lg">
                 <div class="card-body p-lg-5 p-4">
-                    <h1 class="card-title fw-bold display-4 mb-3">Cricket Score Counter</h1>
-                    <p class="card-text text-muted fs-5 mb-4">The ultimate tool for your local cricket matches.</p>
+                    <h1 class="card-title fw-bold display-4 mb-3">Start a Match</h1>
+                    <p class="card-text text-muted fs-5 mb-4">Create a new match or join one that's already in progress.</p>
                     <div class="d-grid gap-3 d-md-block">
                         <button class="btn btn-primary btn-lg px-5 py-3" onclick="showCustomModal('createMatchModal')">
                             <i class="bi bi-plus-circle-fill me-2"></i>Create New Match
@@ -255,7 +284,7 @@
             </div>
 
             <!-- Scoring Controls -->
-            <div class="card">
+            <div id="scoringControls" class="card mb-4">
                  <div class="card-header text-center">Scoring Controls</div>
                  <div class="card-body text-center p-4 scoring-controls">
                     <h5 class="fw-semibold mb-3">Runs</h5>
@@ -277,6 +306,12 @@
                     <button class="btn btn-info px-4" id="endInningsBtn" onclick="endInnings()">End Innings</button>
                  </div>
             </div>
+
+            <!-- Live Scorecards -->
+            <h3 class="fw-bold text-dark mt-4 mb-3">Live Scorecards</h3>
+            <div id="liveScorecardInning1"></div>
+            <div id="liveScorecardInning2" style="display:none;"></div>
+             <button class="btn btn-outline-secondary w-100 mt-3" onclick="goToHome()">Back to Dashboard</button>
         </div>
 
         <!-- Match End View -->
@@ -288,8 +323,8 @@
                     <hr>
                     <h3 class="fw-bold mt-4">Final Scorecards</h3>
                     <div id="finalScorecards" class="mt-3 text-start"></div>
-                    <button class="btn btn-primary btn-lg mt-4" onclick="location.reload()">
-                        <i class="bi bi-house-door-fill me-2"></i>Start New Match
+                    <button class="btn btn-primary btn-lg mt-4" onclick="goToHome()">
+                        <i class="bi bi-house-door-fill me-2"></i>Back to Dashboard
                     </button>
                 </div>
             </div>
@@ -402,59 +437,86 @@
     
     <!-- Firebase Libraries -->
     <script type="module">
-        // Import Firebase modules. These are used to connect and interact with the database.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
         // --- VARIABLE DECLARATIONS ---
-        
-        // Use the user's provided Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyDCISzlgdJ-QsjiFp6Q9JEoSJnunploiS0",
             authDomain: "g-cricket-1083d.firebaseapp.com",
             databaseURL: "https://g-cricket-1083d-default-rtdb.firebaseio.com",
             projectId: "g-cricket-1083d",
-            storageBucket: "g-cricket-1083d.appspot.com", // Corrected storage bucket URL
+            storageBucket: "g-cricket-1083d.appspot.com",
             messagingSenderId: "136196175385",
             appId: "1:136196175385:web:91fff5cd387c7968e0dc88",
             measurementId: "G-6F9S4Z702R"
         };
 
-        // Initialize Firebase app and services
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        // setLogLevel('debug'); // Uncomment for detailed logs
+        // setLogLevel('debug');
 
         let currentMatchId = null;
-        let matchData = null; // This will hold the live data for the current match
-        let unsubscribeFromMatch = null; // Function to stop listening for updates
+        let matchData = null;
+        let unsubscribeFromMatch = null;
         
         // --- CORE APPLICATION LOGIC ---
-        window.onload = async () => {
-            // Set up event listeners for buttons
+        window.onload = () => {
+            document.getElementById('loginBtn').addEventListener('click', handleLogin);
+            document.getElementById('registerBtn').addEventListener('click', handleRegister);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             document.getElementById('startMatchBtn').addEventListener('click', createMatch);
             document.getElementById('joinMatchBtn').addEventListener('click', joinMatch);
             document.getElementById('confirmPlayerSelectBtn').addEventListener('click', handlePlayerSelection);
             document.getElementById('confirmWicketBtn').addEventListener('click', handleWicket);
             document.getElementById('matchIdDisplay').addEventListener('click', copyMatchId);
-            
+
+            onAuthStateChanged(auth, user => {
+                if (user) {
+                    showView('homeView');
+                } else {
+                    showView('authView');
+                    if (unsubscribeFromMatch) unsubscribeFromMatch();
+                }
+            });
+        };
+
+        // --- AUTHENTICATION ---
+        async function handleLogin() {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            if (!email || !password) return alert("Email and password are required.");
+            await showCustomModal('loadingModal', 'Logging in...');
             try {
-                await showCustomModal('loadingModal', 'Authenticating...');
-                await signInAnonymously(auth);
-                console.log("Authentication successful.");
+                await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
-                console.error("Authentication failed:", error);
-                alert("Could not connect to the service. Please refresh the page.");
+                alert(`Login Failed: ${error.message}`);
             } finally {
                 await hideCustomModal('loadingModal');
             }
-        };
+        }
 
-        /**
-         * Creates a new match, saves it to Firestore, and transitions to the scoreboard.
-         */
+        async function handleRegister() {
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+             if (!email || !password) return alert("Email and password are required.");
+            await showCustomModal('loadingModal', 'Registering...');
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                 alert(`Registration Failed: ${error.message}`);
+            } finally {
+                await hideCustomModal('loadingModal');
+            }
+        }
+        async function handleLogout() {
+            await signOut(auth);
+            goToHome();
+        }
+
+        // --- MATCH MANAGEMENT ---
         async function createMatch() {
             const teamAName = document.getElementById('teamANameInput').value.trim() || 'Team A';
             const teamBName = document.getElementById('teamBNameInput').value.trim() || 'Team B';
@@ -465,15 +527,13 @@
             currentMatchId = generateMatchId();
             
             const newMatchData = {
+                creatorUid: auth.currentUser.uid, // Store who created the match
                 teamAName, teamBName, oversPerInning,
                 gameState: 'setup', 
                 tossWonBy: teamAName, 
                 choseTo: 'Bat', 
                 currentInning: 1,
-                innings: {
-                    1: createInningData(teamAName, teamBName),
-                    2: createInningData(teamBName, teamAName),
-                },
+                innings: { 1: createInningData(teamAName, teamBName), 2: createInningData(teamBName, teamAName) },
             };
             
             try {
@@ -482,19 +542,14 @@
                 await listenToMatch(currentMatchId);
             } catch(error) {
                 console.error("Error creating match:", error);
-                alert("Failed to create match. Please try again.");
             } finally {
                 await hideCustomModal('loadingModal');
             }
         }
         
-        /**
-         * Joins an existing match using the ID from the input field.
-         */
         async function joinMatch() {
             const matchId = document.getElementById('joinMatchIdInput').value.trim();
             if (!matchId) return alert("Please enter a Match ID.");
-            
             await showCustomModal('loadingModal', 'Joining Match...');
             try {
                 const matchRef = doc(db, `matches`, matchId);
@@ -502,11 +557,10 @@
                 if (matchSnap.exists()) {
                     await listenToMatch(matchId);
                 } else {
-                    alert("Match not found. Please check the ID.");
+                    alert("Match not found.");
                 }
             } catch (error) {
                 console.error("Error joining match:", error);
-                alert("An error occurred while trying to join the match.");
             } finally {
                 await hideCustomModal('loadingModal');
             }
@@ -522,94 +576,104 @@
                     matchData = doc.data();
                     renderUI();
                 } else {
-                    alert("The match has ended or been deleted.");
-                    location.reload();
+                    alert("Match has been deleted.");
+                    goToHome();
                 }
             });
         }
         
+        // --- UI RENDERING & VIEWS ---
+        function showView(viewId) {
+            ['authView', 'homeView', 'scoreboardView', 'matchEndView'].forEach(id => {
+                document.getElementById(id).style.display = (id === viewId) ? 'block' : 'none';
+            });
+            document.getElementById('logoutBtn').style.display = (viewId === 'homeView') ? 'block' : 'none';
+        }
+
+        function goToHome() {
+            if (unsubscribeFromMatch) unsubscribeFromMatch();
+            currentMatchId = null;
+            matchData = null;
+            showView('homeView');
+        }
+
         function renderUI() {
             if (!matchData) return;
-            document.getElementById('homeView').style.display = 'none';
-            document.getElementById('scoreboardView').style.display = 'none';
-            document.getElementById('matchEndView').style.display = 'none';
+            const isScorer = auth.currentUser && auth.currentUser.uid === matchData.creatorUid;
 
             if (matchData.gameState === 'finished') {
-                document.getElementById('matchEndView').style.display = 'block';
+                showView('matchEndView');
                 renderMatchEndView();
-            } else if (matchData.gameState === 'setup') {
-                document.getElementById('homeView').style.display = 'block';
-                const inningNumber = matchData.currentInning;
-                const battingTeam = matchData.innings[inningNumber].battingTeam;
-                
-                showNewInningsModal(inningNumber, battingTeam);
-
-            } else {
-                document.getElementById('scoreboardView').style.display = 'block';
+            } else if (matchData.gameState === 'setup' && isScorer) {
+                showView('homeView'); // Show home view in background
+                showNewInningsModal();
+            } else if (matchData.gameState === 'setup' && !isScorer) {
+                showView('scoreboardView');
                 renderScoreboard();
+                document.getElementById('scoringControls').style.display = 'none';
+                alert("Waiting for the scorer to start the innings...");
+            } else {
+                showView('scoreboardView');
+                renderScoreboard();
+                document.getElementById('scoringControls').style.display = isScorer ? 'block' : 'none';
             }
         }
         
         function renderScoreboard() {
             const inning = matchData.innings[matchData.currentInning];
             if (!inning) return;
-
-            const isSecondInning = matchData.currentInning === 2;
-            const oversPerInning = matchData.oversPerInning;
+            const { battingTeam, bowlingTeam, runs, wickets, totalBalls, striker, nonStriker, bowler } = inning;
+            const { completedOvers, ballsInOver } = calculateOvers(totalBalls);
             
-            document.getElementById('battingTeamName').textContent = inning.battingTeam;
-            document.getElementById('bowlingTeamName').textContent = inning.bowlingTeam;
-            
-            const { completedOvers, ballsInOver } = calculateOvers(inning.totalBalls);
-            document.getElementById('scoreDisplay').textContent = `${inning.runs}/${inning.wickets}`;
+            document.getElementById('battingTeamName').textContent = battingTeam;
+            document.getElementById('bowlingTeamName').textContent = bowlingTeam;
+            document.getElementById('scoreDisplay').textContent = `${runs}/${wickets}`;
             document.getElementById('oversDisplay').textContent = `(${completedOvers}.${ballsInOver} Overs)`;
-            
-            const striker = inning.striker || {};
-            const nonStriker = inning.nonStriker || {};
-            const bowler = inning.bowler || {};
-            
-            document.getElementById('strikerDisplay').textContent = `${striker.name || '...'}*: ${striker.runs || 0} (${striker.balls || 0})`;
-            document.getElementById('nonStrikerDisplay').textContent = `${nonStriker.name || '...'}: ${nonStriker.runs || 0} (${nonStriker.balls || 0})`;
-            const bowlerOvers = calculateOvers(bowler.balls || 0);
-            document.getElementById('bowlerDisplay').textContent = `Bowler: ${bowler.name || '...'} (${bowlerOvers.completedOvers}.${bowlerOvers.ballsInOver} - ${bowler.runsConceded || 0} - ${bowler.wickets || 0})`;
-
+            document.getElementById('strikerDisplay').textContent = `${striker?.name || '...'}*: ${striker?.runs || 0} (${striker?.balls || 0})`;
+            document.getElementById('nonStrikerDisplay').textContent = `${nonStriker?.name || '...'}: ${nonStriker?.runs || 0} (${nonStriker?.balls || 0})`;
+            const bowlerOvers = calculateOvers(bowler?.balls || 0);
+            document.getElementById('bowlerDisplay').textContent = `Bowler: ${bowler?.name || '...'} (${bowlerOvers.completedOvers}.${bowlerOvers.ballsInOver} - ${bowler?.runsConceded || 0} - ${bowler?.wickets || 0})`;
             document.getElementById('matchIdDisplay').textContent = `ID: ${currentMatchId}`;
             
             const targetDisplay = document.getElementById('targetDisplay');
-            if (isSecondInning) {
+            if (matchData.currentInning === 2) {
                 const target = (matchData.innings['1'].runs || 0) + 1;
-                const runsNeeded = target - inning.runs;
-                const ballsRemaining = (oversPerInning * 6) - inning.totalBalls;
-                targetDisplay.textContent = (runsNeeded > 0 && ballsRemaining > 0) ? `${inning.battingTeam} needs ${runsNeeded} runs in ${ballsRemaining} balls.` : `Target: ${target}`;
+                const runsNeeded = target - runs;
+                const ballsRemaining = (matchData.oversPerInning * 6) - totalBalls;
+                targetDisplay.textContent = (runsNeeded > 0 && ballsRemaining > 0) ? `${battingTeam} needs ${runsNeeded} in ${ballsRemaining} balls.` : `Target: ${target}`;
                 targetDisplay.style.display = 'block';
             } else {
                 targetDisplay.style.display = 'none';
             }
             
-            // Corrected condition to check for end of innings
-            if ((inning.wickets >= 10 || completedOvers >= oversPerInning) && (matchData.gameState === 'live' || matchData.gameState.includes('wait'))) {
+            renderLiveScorecards();
+
+            if ((wickets >= 10 || completedOvers >= matchData.oversPerInning) && matchData.gameState === 'live') {
                 endInnings();
+            }
+        }
+
+        function renderLiveScorecards() {
+            document.getElementById('liveScorecardInning1').innerHTML = createLiveScorecardHTML(matchData.innings['1'], matchData.currentInning === 1);
+            const inning2Container = document.getElementById('liveScorecardInning2');
+            if(matchData.currentInning === 2) {
+                inning2Container.innerHTML = createLiveScorecardHTML(matchData.innings['2'], true);
+                inning2Container.style.display = 'block';
+            } else {
+                inning2Container.style.display = 'none';
             }
         }
         
         function renderMatchEndView() {
-            const { 1: inning1, 2: inning2 } = matchData.innings;
-            let winner = inning1.battingTeam;
-            let margin = `${inning1.runs - inning2.runs} runs`;
-
-            if (inning2.runs > inning1.runs) {
-                winner = inning2.battingTeam;
-                margin = `${10 - inning2.wickets} wickets`;
-            } else if (inning1.runs === inning2.runs) {
-                winner = "Match Tied";
-                margin = "";
-            }
-            document.getElementById('matchResultText').textContent = winner === "Match Tied" ? "Match Tied!" : `${winner} Won!`;
+            const { 1: i1, 2: i2 } = matchData.innings;
+            let winner = i2.runs > i1.runs ? i2.battingTeam : (i1.runs > i2.runs ? i1.battingTeam : "Match Tied");
+            let margin = i2.runs > i1.runs ? `${10 - i2.wickets} wickets` : (i1.runs > i2.runs ? `${i1.runs - i2.runs} runs` : "");
+            document.getElementById('matchResultText').textContent = winner === "Match Tied" ? winner : `${winner} Won!`;
             document.getElementById('matchWinnerText').textContent = margin ? `Won by ${margin}` : "";
-            document.getElementById('finalScorecards').innerHTML = `${createScorecardHTML(inning1)}${createScorecardHTML(inning2)}`;
+            document.getElementById('finalScorecards').innerHTML = `${createLiveScorecardHTML(i1, false)}${createLiveScorecardHTML(i2, false)}`;
         }
 
-        // --- EVENT HANDLER FUNCTIONS ---
+        // --- EVENT HANDLER & LOGIC FUNCTIONS ---
         
         async function handlePlayerSelection() {
             const inning = matchData.innings[matchData.currentInning];
@@ -624,22 +688,19 @@
                 const bowlerName = document.getElementById('openingBowlerInput').value.trim() || 'Bowler 1';
                 updates = {
                     gameState: 'live',
-                    [`${inningPath}.striker`]: inning.battingStats[strikerName] || createPlayerData(strikerName),
-                    [`${inningPath}.nonStriker`]: inning.battingStats[nonStrikerName] || createPlayerData(nonStrikerName),
-                    [`${inningPath}.bowler`]: inning.bowlingStats[bowlerName] || createBowlerData(bowlerName),
-                    [`${inningPath}.battingOrder`]: [...new Set([...inning.battingOrder, strikerName, nonStrikerName])],
-                    [`${inningPath}.bowlersUsed`]: [...new Set([...inning.bowlersUsed, bowlerName])]
+                    [`${inningPath}.striker`]: createPlayerData(strikerName),
+                    [`${inningPath}.nonStriker`]: createPlayerData(nonStrikerName),
+                    [`${inningPath}.bowler`]: createBowlerData(bowlerName),
+                    [`${inningPath}.battingOrder`]: [strikerName, nonStrikerName],
+                    [`${inningPath}.bowlersUsed`]: [bowlerName]
                 };
             } else if (matchData.gameState === 'wicket_wait') {
-                const newBatsmanName = document.getElementById('newBatsmanInput').value.trim();
-                if (!newBatsmanName) return alert("Please enter the new batsman's name.");
-                const newBatsmanData = inning.battingStats[newBatsmanName] || createPlayerData(newBatsmanName);
+                const newBatsmanName = document.getElementById('newBatsmanInput').value.trim() || 'New Batsman';
                 updates = { gameState: 'live' };
-                updates[`${inningPath}.${matchData.outBatsman}`] = newBatsmanData;
+                updates[`${inningPath}.${matchData.outBatsman}`] = inning.battingStats[newBatsmanName] || createPlayerData(newBatsmanName);
                 updates[`${inningPath}.battingOrder`] = [...new Set([...inning.battingOrder, newBatsmanName])];
             } else if(matchData.gameState === 'over_end_wait') {
-                const newBowlerName = document.getElementById('newBowlerInput').value.trim();
-                if (!newBowlerName) return alert("Please enter the new bowler's name.");
+                const newBowlerName = document.getElementById('newBowlerInput').value.trim() || `Bowler ${inning.bowlersUsed.length + 1}`;
                 updates = { gameState: 'live' };
                 updates[`${inningPath}.bowlingStats.${inning.bowler.name}`] = inning.bowler;
                 updates[`${inningPath}.bowler`] = inning.bowlingStats[newBowlerName] || createBowlerData(newBowlerName);
@@ -652,7 +713,6 @@
             if (matchData.gameState !== 'live') return;
             const inningPath = `innings.${matchData.currentInning}`;
             const inning = matchData.innings[matchData.currentInning];
-            let updates = {};
             const newTotalRuns = inning.runs + runs;
 
             let tempStriker = { ...inning.striker, runs: inning.striker.runs + runs, balls: inning.striker.balls + 1 };
@@ -660,7 +720,7 @@
             const endOfOver = (inning.totalBalls + 1) % 6 === 0;
             const rotateStrike = (runs % 2 !== 0 && !endOfOver) || (runs % 2 === 0 && endOfOver);
 
-            updates = {
+            const updates = {
                 [`${inningPath}.runs`]: newTotalRuns,
                 [`${inningPath}.totalBalls`]: inning.totalBalls + 1,
                 [`${inningPath}.bowler`]: tempBowler,
@@ -669,9 +729,7 @@
             };
 
             if (matchData.currentInning === 2 && newTotalRuns >= (matchData.innings['1'].runs + 1)) {
-                await updateMatchData(updates);
-                endInnings();
-                return;
+                return endInnings(updates);
             }
 
             if (endOfOver && calculateOvers(inning.totalBalls + 1).completedOvers < matchData.oversPerInning) {
@@ -695,9 +753,7 @@
             };
             
             if (matchData.currentInning === 2 && newTotalRuns >= (matchData.innings['1'].runs + 1)) {
-                await updateMatchData(updates);
-                endInnings();
-                return;
+                return endInnings(updates);
             }
             await updateMatchData(updates);
         }
@@ -708,8 +764,8 @@
             const outBatsman = document.querySelector('input[name="outBatsmanRadio"]:checked').value;
             const inningPath = `innings.${matchData.currentInning}`;
             const inning = matchData.innings[matchData.currentInning];
-            
-            const outBatsmanData = { ...inning[outBatsman], isOut: true };
+            const outBatsmanData = { ...(inning[outBatsman] || {}), isOut: true };
+
             const updates = {
                 [`${inningPath}.wickets`]: inning.wickets + 1,
                 [`${inningPath}.totalBalls`]: inning.totalBalls + 1,
@@ -730,10 +786,11 @@
             }
         }
         
-        async function endInnings() {
+        async function endInnings(finalUpdates = {}) {
             const inningPath = `innings.${matchData.currentInning}`;
             const inning = matchData.innings[matchData.currentInning];
-            const updates = {};
+            const updates = { ...finalUpdates };
+            
             if(inning.striker.name) updates[`${inningPath}.battingStats.${inning.striker.name}`] = inning.striker;
             if(inning.nonStriker.name) updates[`${inningPath}.battingStats.${inning.nonStriker.name}`] = inning.nonStriker;
             if(inning.bowler.name) updates[`${inningPath}.bowlingStats.${inning.bowler.name}`] = inning.bowler;
@@ -822,7 +879,9 @@
             document.getElementById('playerSelectTitle').textContent = `End of Over. Select New Bowler.`;
             showCustomModal('playerSelectModal');
         }
-        function showNewInningsModal(inningNumber, battingTeam) {
+        function showNewInningsModal() {
+            const inningNumber = matchData.currentInning;
+            const battingTeam = matchData.innings[inningNumber].battingTeam;
             document.getElementById('initialPlayerSelect').style.display = 'block';
             document.getElementById('newBatsmanSelect').style.display = 'none';
             document.getElementById('newBowlerSelect').style.display = 'none';
@@ -844,29 +903,48 @@
             if (modal) modal.style.display = 'none';
         }
         
-        function createScorecardHTML(inningData) {
-            if (!inningData || !inningData.battingOrder) return '';
+        function createLiveScorecardHTML(inningData, isCurrentInning) {
+            if (!inningData) return '';
             let battingRows = '';
             const processedBatsmen = new Set();
-            for (const playerName of inningData.battingOrder) {
-                if (processedBatsmen.has(playerName) || !playerName) continue;
-                let stats = inningData.battingStats[playerName] || (inningData.striker.name === playerName ? inningData.striker : inningData.nonStriker);
+        
+            const fullBattingOrder = [...new Set([...inningData.battingOrder, (inningData.striker?.name), (inningData.nonStriker?.name)].filter(Boolean))];
+
+            for (const playerName of fullBattingOrder) {
+                if (processedBatsmen.has(playerName)) continue;
+                let stats;
+                let isOut = false;
+                
+                if (isCurrentInning && inningData.striker?.name === playerName) {
+                    stats = inningData.striker;
+                } else if (isCurrentInning && inningData.nonStriker?.name === playerName) {
+                    stats = inningData.nonStriker;
+                } else {
+                    stats = inningData.battingStats[playerName];
+                    isOut = stats?.isOut;
+                }
+                
                 if (stats && stats.name) {
-                    battingRows += `<tr><td>${stats.name}</td><td>${stats.isOut ? 'out' : 'not out'}</td><td class="fw-bold">${stats.runs}</td><td>${stats.balls}</td></tr>`;
+                    battingRows += `<tr><td>${stats.name}${isCurrentInning && (inningData.striker?.name === playerName) ? '*' : ''}</td><td>${isOut ? 'out' : 'not out'}</td><td class="fw-bold">${stats.runs}</td><td>${stats.balls}</td></tr>`;
                     processedBatsmen.add(playerName);
                 }
             }
+
             let bowlingRows = '';
             const processedBowlers = new Set();
-            for (const bowlerName of inningData.bowlersUsed) {
-                if (processedBowlers.has(bowlerName) || !bowlerName) continue;
-                let stats = inningData.bowlingStats[bowlerName] || (inningData.bowler.name === bowlerName ? inningData.bowler : null);
+            const fullBowlerList = [...new Set([...inningData.bowlersUsed, inningData.bowler?.name].filter(Boolean))];
+
+            for (const bowlerName of fullBowlerList) {
+                if (processedBowlers.has(bowlerName)) continue;
+                let stats = (isCurrentInning && inningData.bowler?.name === bowlerName) ? inningData.bowler : inningData.bowlingStats[bowlerName];
+
                  if (stats && stats.name) {
                     const { completedOvers, ballsInOver } = calculateOvers(stats.balls);
                     bowlingRows += `<tr><td>${stats.name}</td><td>${completedOvers}.${ballsInOver}</td><td>${stats.runsConceded}</td><td class="fw-bold">${stats.wickets}</td></tr>`;
                     processedBowlers.add(bowlerName);
                  }
             }
+            
             const { completedOvers, ballsInOver } = calculateOvers(inningData.totalBalls);
             return `<div class="card mb-3"><div class="card-header bg-light text-dark fw-bold">${inningData.battingTeam} - ${inningData.runs}/${inningData.wickets} (${completedOvers}.${ballsInOver} Overs)</div><div class="card-body"><h6 class="fw-bold">Batting</h6><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Batsman</th><th>Status</th><th>Runs</th><th>Balls</th></tr></thead><tbody>${battingRows}</tbody></table></div><h6 class="fw-bold mt-3">Bowling</h6><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Bowler</th><th>Overs</th><th>Runs</th><th>Wickets</th></tr></thead><tbody>${bowlingRows}</tbody></table></div></div></div>`;
         }
@@ -879,6 +957,7 @@
         window.showCustomModal = showCustomModal;
         window.hideCustomModal = hideCustomModal;
         window.showWicketModal = showWicketModal;
+        window.goToHome = goToHome;
 
     </script>
 </body>
