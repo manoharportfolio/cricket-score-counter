@@ -197,7 +197,10 @@
             <i class="bi bi-person-workspace"></i>
             Cricket Score Counter
         </a>
-        <button id="logoutBtn" class="btn btn-outline-danger" style="display: none;">Logout</button>
+        <div class="d-flex">
+            <button id="profileBtn" class="btn btn-outline-secondary me-2" style="display: none;">My Profile</button>
+            <button id="logoutBtn" class="btn btn-outline-danger" style="display: none;">Logout</button>
+        </div>
       </div>
     </nav>
 
@@ -318,6 +321,7 @@
                     <h5 class="fw-semibold mt-4 mb-3">Events</h5>
                     <button class="btn btn-danger" onclick="showWicketModal()">Wicket</button>
                     <button class="btn btn-secondary" onclick="swapBatsmen()">Swap Batsmen</button>
+                    <button class="btn btn-warning" onclick="handleUndo()">Undo</button>
                     <hr class="my-4">
                     <button class="btn btn-info px-4" id="endInningsBtn" onclick="endInnings()">End Innings</button>
                  </div>
@@ -327,7 +331,6 @@
             <h3 class="fw-bold text-dark mt-4 mb-3">Live Scorecards</h3>
             <div id="liveScorecardInning1"></div>
             <div id="liveScorecardInning2" style="display:none;"></div>
-             <button class="btn btn-outline-secondary w-100 mt-3" onclick="goToHome()">Back to Dashboard</button>
         </div>
 
         <!-- Match End View -->
@@ -441,6 +444,22 @@
         </div>
     </div>
 
+    <!-- Profile Modal -->
+    <div id="profileModal" class="custom-modal-backdrop">
+        <div class="custom-modal">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">My Profile</h5>
+                <button type="button" class="btn-close" onclick="hideCustomModal('profileModal')"></button>
+            </div>
+            <div class="custom-modal-body">
+                <p><strong>Email:</strong> <span id="profileEmail"></span></p>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideCustomModal('profileModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Loading Modal -->
     <div id="loadingModal" class="custom-modal-backdrop">
         <div class="custom-modal loading">
@@ -477,6 +496,7 @@
         let currentMatchId = null;
         let matchData = null;
         let unsubscribeFromMatch = null;
+        let matchHistory = [];
         
         // --- CORE APPLICATION LOGIC ---
         window.onload = () => {
@@ -484,6 +504,7 @@
             document.getElementById('registerBtn').addEventListener('click', handleRegister);
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             document.getElementById('forgotPasswordLink').addEventListener('click', handleForgotPassword);
+            document.getElementById('profileBtn').addEventListener('click', showProfileModal);
             document.getElementById('startMatchBtn').addEventListener('click', createMatch);
             document.getElementById('joinMatchBtn').addEventListener('click', joinMatch);
             document.getElementById('confirmPlayerSelectBtn').addEventListener('click', handlePlayerSelection);
@@ -492,10 +513,13 @@
 
             onAuthStateChanged(auth, user => {
                 if (user) {
-                    showView('homeView');
+                    if(!currentMatchId) showView('homeView');
                 } else {
                     showView('authView');
                     if (unsubscribeFromMatch) unsubscribeFromMatch();
+                    currentMatchId = null;
+                    matchData = null;
+                    matchHistory = [];
                 }
             });
         };
@@ -531,7 +555,6 @@
         async function handleLogout() {
             try {
                 await signOut(auth);
-                goToHome(); // This will switch the view immediately
             } catch (error) {
                 console.error("Logout failed:", error);
             }
@@ -551,6 +574,14 @@
                 await hideCustomModal('loadingModal');
             }
         }
+        
+        function showProfileModal() {
+            const user = auth.currentUser;
+            if(user) {
+                document.getElementById('profileEmail').textContent = user.email;
+                showCustomModal('profileModal');
+            }
+        }
 
         // --- MATCH MANAGEMENT ---
         async function createMatch() {
@@ -561,9 +592,10 @@
             await hideCustomModal('createMatchModal');
             await showCustomModal('loadingModal', 'Creating Match...');
             currentMatchId = generateMatchId();
+            matchHistory = []; // Reset history for new match
             
             const newMatchData = {
-                creatorUid: auth.currentUser.uid, // Store who created the match
+                creatorUid: auth.currentUser.uid, 
                 teamAName, teamBName, oversPerInning,
                 gameState: 'setup', 
                 tossWonBy: teamAName, 
@@ -587,6 +619,7 @@
             const matchId = document.getElementById('joinMatchIdInput').value.trim();
             if (!matchId) return alert("Please enter a Match ID.");
             await showCustomModal('loadingModal', 'Joining Match...');
+            matchHistory = []; // Reset history for joined match
             try {
                 const matchRef = doc(db, `matches`, matchId);
                 const matchSnap = await getDoc(matchRef);
@@ -623,13 +656,19 @@
             ['authView', 'homeView', 'scoreboardView', 'matchEndView'].forEach(id => {
                 document.getElementById(id).style.display = (id === viewId) ? 'block' : 'none';
             });
-            document.getElementById('logoutBtn').style.display = (viewId === 'homeView' || viewId === 'scoreboardView' || viewId === 'matchEndView') ? 'block' : 'none';
+            const isLoggedIn = auth.currentUser !== null;
+            document.getElementById('logoutBtn').style.display = isLoggedIn ? 'block' : 'none';
+            document.getElementById('profileBtn').style.display = isLoggedIn ? 'block' : 'none';
         }
 
         function goToHome() {
-            if (unsubscribeFromMatch) unsubscribeFromMatch();
+            if (unsubscribeFromMatch) {
+                unsubscribeFromMatch();
+                unsubscribeFromMatch = null;
+            }
             currentMatchId = null;
             matchData = null;
+            matchHistory = [];
             showView('homeView');
         }
 
@@ -640,14 +679,17 @@
             if (matchData.gameState === 'finished') {
                 showView('matchEndView');
                 renderMatchEndView();
-            } else if (matchData.gameState === 'setup' && isScorer) {
-                showView('homeView'); // Show home view in background
-                showNewInningsModal();
-            } else if (matchData.gameState === 'setup' && !isScorer) {
-                showView('scoreboardView');
-                renderScoreboard();
-                document.getElementById('scoringControls').style.display = 'none';
-                alert("Waiting for the scorer to start the innings...");
+            } else if (matchData.gameState === 'setup') {
+                 if(isScorer) {
+                    showView('scoreboardView'); 
+                    document.getElementById('scoringControls').style.display = 'none';
+                    renderScoreboard(); // Render scoreboard to see context
+                    showNewInningsModal();
+                } else {
+                    showView('scoreboardView');
+                    renderScoreboard();
+                    document.getElementById('scoringControls').style.display = 'none';
+                }
             } else {
                 showView('scoreboardView');
                 renderScoreboard();
@@ -692,8 +734,8 @@
         function renderLiveScorecards() {
             document.getElementById('liveScorecardInning1').innerHTML = createLiveScorecardHTML(matchData.innings['1'], matchData.currentInning === 1);
             const inning2Container = document.getElementById('liveScorecardInning2');
-            if(matchData.currentInning === 2) {
-                inning2Container.innerHTML = createLiveScorecardHTML(matchData.innings['2'], true);
+            if(matchData.currentInning === 2 || matchData.gameState === 'finished') {
+                inning2Container.innerHTML = createLiveScorecardHTML(matchData.innings['2'], matchData.currentInning === 2);
                 inning2Container.style.display = 'block';
             } else {
                 inning2Container.style.display = 'none';
@@ -822,6 +864,24 @@
             }
         }
         
+        async function handleUndo() {
+            if (matchHistory.length === 0) {
+                return alert("Nothing to undo.");
+            }
+            const stateToRestore = matchHistory.pop();
+            await showCustomModal('loadingModal', 'Undoing...');
+            try {
+                const matchRef = doc(db, "matches", currentMatchId);
+                // Use setDoc to completely overwrite the document with the previous state
+                await setDoc(matchRef, stateToRestore);
+            } catch (error) {
+                console.error("Failed to undo state:", error);
+                matchHistory.push(stateToRestore); // Push it back if restore fails
+            } finally {
+                await hideCustomModal('loadingModal');
+            }
+        }
+
         async function endInnings(finalUpdates = {}) {
             const inningPath = `innings.${matchData.currentInning}`;
             const inning = matchData.innings[matchData.currentInning];
@@ -860,12 +920,18 @@
 
         async function updateMatchData(updates) {
             if (!currentMatchId) return;
+            // Save state for undo BEFORE making the update
+            if (matchData) {
+                matchHistory.push(JSON.parse(JSON.stringify(matchData)));
+                if (matchHistory.length > 20) matchHistory.shift(); // Limit history size
+            }
             await showCustomModal('loadingModal', 'Updating...');
             try {
                 const matchRef = doc(db, "matches", currentMatchId);
                 await updateDoc(matchRef, updates);
             } catch (error) {
                 console.error("Failed to update match data:", error);
+                matchHistory.pop(); // Revert history if update fails
             } finally {
                 await hideCustomModal('loadingModal');
             }
@@ -994,6 +1060,7 @@
         window.hideCustomModal = hideCustomModal;
         window.showWicketModal = showWicketModal;
         window.goToHome = goToHome;
+        window.handleUndo = handleUndo;
 
     </script>
 </body>
