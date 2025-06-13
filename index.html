@@ -99,7 +99,7 @@
             background-color: #e0e7ff;
         }
 
-        #authView, #homeView, #scoreboardView, #matchEndView, #scoringControls { display: none; }
+        #authView, #homeView, #scoreboardView, #matchEndView, #myMatchesView, #scoringControls { display: none; }
         
         /* --- Custom Modal Styles --- */
         .custom-modal-backdrop {
@@ -198,6 +198,7 @@
             Cricket Score Counter
         </a>
         <div class="d-flex">
+             <button id="myMatchesBtn" class="btn btn-outline-primary me-2" style="display: none;">My Matches</button>
             <button id="profileBtn" class="btn btn-outline-secondary me-2" style="display: none;">My Profile</button>
             <button id="logoutBtn" class="btn btn-outline-danger" style="display: none;">Logout</button>
         </div>
@@ -254,6 +255,16 @@
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- My Matches View -->
+        <div id="myMatchesView">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="fw-bold mb-0">My Matches</h2>
+            </div>
+            <div id="myMatchesList" class="list-group">
+                <!-- Match list will be populated here -->
             </div>
         </div>
 
@@ -473,7 +484,7 @@
     <!-- Firebase Libraries -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, collection, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
         // --- VARIABLE DECLARATIONS ---
@@ -505,6 +516,7 @@
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             document.getElementById('forgotPasswordLink').addEventListener('click', handleForgotPassword);
             document.getElementById('profileBtn').addEventListener('click', showProfileModal);
+            document.getElementById('myMatchesBtn').addEventListener('click', handleMyMatchesClick);
             document.getElementById('startMatchBtn').addEventListener('click', createMatch);
             document.getElementById('joinMatchBtn').addEventListener('click', joinMatch);
             document.getElementById('confirmPlayerSelectBtn').addEventListener('click', handlePlayerSelection);
@@ -635,6 +647,79 @@
             }
         }
 
+        async function handleMyMatchesClick() {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            await showCustomModal('loadingModal', 'Fetching your matches...');
+            showView('myMatchesView');
+            const matchesRef = collection(db, "matches");
+            const q = query(matchesRef, where("creatorUid", "==", user.uid));
+            const querySnapshot = await getDocs(q);
+            
+            const listContainer = document.getElementById('myMatchesList');
+            listContainer.innerHTML = ''; // Clear previous list
+
+            if (querySnapshot.empty) {
+                listContainer.innerHTML = '<p class="text-center text-muted">You have not created any matches yet.</p>';
+            } else {
+                querySnapshot.forEach((doc) => {
+                    const match = doc.data();
+                    const status = match.gameState === 'finished' ? 'Completed' : 'Pending';
+                    const statusColor = status === 'Completed' ? 'success' : 'warning';
+
+                    const listItem = document.createElement('div');
+                    listItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.style.cursor = 'pointer';
+                    infoDiv.innerHTML = `
+                        <h5 class="mb-1">${match.teamAName} vs ${match.teamBName}</h5>
+                        <small>Match ID: ${doc.id}</small>
+                    `;
+                    infoDiv.addEventListener('click', () => listenToMatch(doc.id));
+
+                    const controlsDiv = document.createElement('div');
+                    controlsDiv.innerHTML = `
+                        <span class="badge bg-${statusColor} rounded-pill me-2">${status}</span>
+                        <button class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    `;
+                    controlsDiv.querySelector('button').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        handleDeleteMatch(doc.id);
+                    });
+
+                    listItem.appendChild(infoDiv);
+                    listItem.appendChild(controlsDiv);
+                    listContainer.appendChild(listItem);
+                });
+            }
+             await hideCustomModal('loadingModal');
+        }
+
+        async function handleDeleteMatch(matchIdToDelete) {
+            if (!matchIdToDelete) return;
+
+            const confirmation = confirm("Are you sure you want to delete this match? This action cannot be undone.");
+            if (!confirmation) {
+                return;
+            }
+
+            await showCustomModal('loadingModal', 'Deleting match...');
+            try {
+                const matchRef = doc(db, "matches", matchIdToDelete);
+                await deleteDoc(matchRef);
+                // After deleting, refresh the list of matches
+                await handleMyMatchesClick();
+            } catch (error) {
+                console.error("Error deleting match:", error);
+                alert("Failed to delete match. Please try again.");
+                await hideCustomModal('loadingModal');
+            } 
+        }
+
         function listenToMatch(matchId) {
             currentMatchId = matchId;
             const matchRef = doc(db, `matches`, matchId);
@@ -653,12 +738,13 @@
         
         // --- UI RENDERING & VIEWS ---
         function showView(viewId) {
-            ['authView', 'homeView', 'scoreboardView', 'matchEndView'].forEach(id => {
+            ['authView', 'homeView', 'scoreboardView', 'matchEndView', 'myMatchesView'].forEach(id => {
                 document.getElementById(id).style.display = (id === viewId) ? 'block' : 'none';
             });
             const isLoggedIn = auth.currentUser !== null;
             document.getElementById('logoutBtn').style.display = isLoggedIn ? 'block' : 'none';
             document.getElementById('profileBtn').style.display = isLoggedIn ? 'block' : 'none';
+            document.getElementById('myMatchesBtn').style.display = isLoggedIn ? 'block' : 'none';
         }
 
         function goToHome() {
@@ -1061,6 +1147,7 @@
         window.showWicketModal = showWicketModal;
         window.goToHome = goToHome;
         window.handleUndo = handleUndo;
+        window.handleDeleteMatch = handleDeleteMatch;
 
     </script>
 </body>
