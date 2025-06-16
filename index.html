@@ -99,7 +99,7 @@
             background-color: #e0e7ff;
         }
 
-        #authView, #homeView, #scoreboardView, #matchEndView, #myMatchesView, #scoringControls { display: none; }
+        #authView, #homeView, #scoreboardView, #matchEndView, #myMatchesView, #playersView, #scoringControls { display: none; }
         
         /* --- Custom Modal Styles --- */
         .custom-modal-backdrop {
@@ -199,6 +199,7 @@
         </a>
         <div class="d-flex">
              <button id="myMatchesBtn" class="btn btn-outline-primary me-2" style="display: none;">My Matches</button>
+             <button id="playersBtn" class="btn btn-outline-info me-2" style="display: none;">Players</button>
             <button id="profileBtn" class="btn btn-outline-secondary me-2" style="display: none;">My Profile</button>
             <button id="logoutBtn" class="btn btn-outline-danger" style="display: none;">Logout</button>
         </div>
@@ -268,6 +269,17 @@
             </div>
         </div>
 
+        <!-- Players and Teams View -->
+        <div id="playersView">
+             <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="fw-bold mb-0">Manage Teams & Players</h2>
+                <button class="btn btn-primary" onclick="showCustomModal('addTeamModal')"><i class="bi bi-plus-circle"></i> Add Team</button>
+            </div>
+            <div id="teamsContainer" class="accordion">
+                <!-- Teams and players will be populated here -->
+            </div>
+        </div>
+
         <!-- Scoreboard View -->
         <div id="scoreboardView">
             <!-- Match Info Header -->
@@ -326,8 +338,10 @@
                     <button class="btn btn-primary" onclick="handleScore(6)">6</button>
                     
                     <h5 class="fw-semibold mt-4 mb-3">Extras</h5>
-                    <button class="btn btn-warning" onclick="handleExtra('wd')">Wide</button>
-                    <button class="btn btn-warning" onclick="handleExtra('nb')">No Ball</button>
+                    <button class="btn btn-warning" onclick="showExtraModal('wd')">Wide</button>
+                    <button class="btn btn-warning" onclick="showExtraModal('nb')">No Ball</button>
+                    <button class="btn btn-info" onclick="showExtraModal('b')">Byes</button>
+                    <button class="btn btn-info" onclick="showExtraModal('lb')">Leg Byes</button>
                     
                     <h5 class="fw-semibold mt-4 mb-3">Events</h5>
                     <button class="btn btn-danger" onclick="showWicketModal()">Wicket</button>
@@ -371,12 +385,14 @@
             </div>
             <div class="custom-modal-body">
                 <div class="mb-3">
-                    <label for="teamANameInput" class="form-label">Team A Name</label>
-                    <input type="text" class="form-control" id="teamANameInput" value="Team A">
+                    <label class="form-label">Team A</label>
+                    <select id="teamASelect" class="form-select"></select>
+                    <input type="text" id="teamANameInput" class="form-control mt-2" placeholder="Or enter custom name">
                 </div>
                 <div class="mb-3">
-                    <label for="teamBNameInput" class="form-label">Team B Name</label>
-                    <input type="text" class="form-control" id="teamBNameInput" value="Team B">
+                    <label class="form-label">Team B</label>
+                    <select id="teamBSelect" class="form-select"></select>
+                    <input type="text" id="teamBNameInput" class="form-control mt-2" placeholder="Or enter custom name">
                 </div>
                 <div class="mb-3">
                     <label for="oversInput" class="form-label">Total Overs per Inning</label>
@@ -398,30 +414,13 @@
             </div>
             <div class="custom-modal-body">
                 <div id="initialPlayerSelect">
-                    <div class="mb-3">
-                        <label for="openingStrikerInput" class="form-label">Opening Batsman (Striker)</label>
-                        <input type="text" class="form-control" id="openingStrikerInput" placeholder="Enter name">
-                    </div>
-                    <div class="mb-3">
-                        <label for="openingNonStrikerInput" class="form-label">Opening Batsman (Non-Striker)</label>
-                        <input type="text" class="form-control" id="openingNonStrikerInput" placeholder="Enter name">
-                    </div>
-                    <div class="mb-3">
-                        <label for="openingBowlerInput" class="form-label">Opening Bowler</label>
-                        <input type="text" class="form-control" id="openingBowlerInput" placeholder="Enter name">
-                    </div>
+                    <!-- Dynamic fields will be added here by JS -->
                 </div>
                 <div id="newBatsmanSelect" style="display:none;">
-                     <div class="mb-3">
-                        <label for="newBatsmanInput" class="form-label">New Batsman's Name</label>
-                        <input type="text" class="form-control" id="newBatsmanInput" placeholder="Enter name">
-                    </div>
+                     <!-- Dynamic fields will be added here by JS -->
                 </div>
                  <div id="newBowlerSelect" style="display:none;">
-                     <div class="mb-3">
-                        <label for="newBowlerInput" class="form-label">New Bowler's Name</label>
-                        <input type="text" class="form-control" id="newBowlerInput" placeholder="Enter name">
-                    </div>
+                     <!-- Dynamic fields will be added here by JS -->
                 </div>
             </div>
             <div class="custom-modal-footer">
@@ -454,6 +453,24 @@
             </div>
         </div>
     </div>
+    
+    <!-- Extras Modal -->
+    <div id="extraModal" class="custom-modal-backdrop">
+        <div class="custom-modal">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title" id="extraModalTitle"></h5>
+                <button type="button" class="btn-close" onclick="hideCustomModal('extraModal')"></button>
+            </div>
+            <div class="custom-modal-body">
+                <label for="extraRunsInput" class="form-label">Runs scored in addition to the penalty?</label>
+                <input type="number" id="extraRunsInput" class="form-control" value="0" min="0">
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideCustomModal('extraModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmExtraBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Profile Modal -->
     <div id="profileModal" class="custom-modal-backdrop">
@@ -470,6 +487,27 @@
             </div>
         </div>
     </div>
+    
+    <!-- Add Team Modal -->
+    <div id="addTeamModal" class="custom-modal-backdrop">
+        <div class="custom-modal">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Add New Team</h5>
+                <button type="button" class="btn-close" onclick="hideCustomModal('addTeamModal')"></button>
+            </div>
+            <div class="custom-modal-body">
+                <div class="mb-3">
+                    <label for="newTeamNameInput" class="form-label">Team Name</label>
+                    <input type="text" class="form-control" id="newTeamNameInput" placeholder="e.g., Local Warriors">
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideCustomModal('addTeamModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveTeamBtn">Save Team</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Loading Modal -->
     <div id="loadingModal" class="custom-modal-backdrop">
@@ -481,10 +519,13 @@
         </div>
     </div>
     
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <!-- Firebase Libraries -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, collection, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, updateDoc, collection, query, where, getDocs, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
         // --- VARIABLE DECLARATIONS ---
@@ -508,23 +549,28 @@
         let matchData = null;
         let unsubscribeFromMatch = null;
         let matchHistory = [];
+        let userTeams = [];
         
         // --- CORE APPLICATION LOGIC ---
         window.onload = () => {
+            // All event listeners are attached here
             document.getElementById('loginBtn').addEventListener('click', handleLogin);
             document.getElementById('registerBtn').addEventListener('click', handleRegister);
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             document.getElementById('forgotPasswordLink').addEventListener('click', handleForgotPassword);
             document.getElementById('profileBtn').addEventListener('click', showProfileModal);
             document.getElementById('myMatchesBtn').addEventListener('click', handleMyMatchesClick);
+            document.getElementById('playersBtn').addEventListener('click', handlePlayersClick);
             document.getElementById('startMatchBtn').addEventListener('click', createMatch);
             document.getElementById('joinMatchBtn').addEventListener('click', joinMatch);
             document.getElementById('confirmPlayerSelectBtn').addEventListener('click', handlePlayerSelection);
             document.getElementById('confirmWicketBtn').addEventListener('click', handleWicket);
             document.getElementById('matchIdDisplay').addEventListener('click', copyMatchId);
+            document.getElementById('saveTeamBtn').addEventListener('click', handleSaveTeam);
 
             onAuthStateChanged(auth, user => {
                 if (user) {
+                    fetchUserTeams();
                     if(!currentMatchId) showView('homeView');
                 } else {
                     showView('authView');
@@ -595,25 +641,149 @@
             }
         }
 
+        // --- TEAMS & PLAYERS MANAGEMENT ---
+        
+        async function fetchUserTeams() {
+            if (!auth.currentUser) return;
+            const teamsRef = collection(db, `users/${auth.currentUser.uid}/teams`);
+            const querySnapshot = await getDocs(teamsRef);
+            userTeams = [];
+            querySnapshot.forEach(doc => {
+                userTeams.push({ id: doc.id, ...doc.data() });
+            });
+            populateTeamSelectors();
+        }
+
+        function populateTeamSelectors() {
+            const teamASelect = document.getElementById('teamASelect');
+            const teamBSelect = document.getElementById('teamBSelect');
+            teamASelect.innerHTML = '<option value="">Select a team or enter custom name</option>';
+            teamBSelect.innerHTML = '<option value="">Select a team or enter custom name</option>';
+            userTeams.forEach(team => {
+                teamASelect.innerHTML += `<option value="${team.name}">${team.name}</option>`;
+                teamBSelect.innerHTML += `<option value="${team.name}">${team.name}</option>`;
+            });
+        }
+
+        async function handlePlayersClick() {
+            showView('playersView');
+            await showCustomModal('loadingModal', 'Loading teams...');
+            await fetchUserTeams();
+            renderTeamsList();
+            await hideCustomModal('loadingModal');
+        }
+        
+        async function handleSaveTeam() {
+            const teamName = document.getElementById('newTeamNameInput').value.trim();
+            if(!teamName) return alert("Team name cannot be empty.");
+            
+            await hideCustomModal('addTeamModal');
+            await showCustomModal('loadingModal', 'Saving team...');
+
+            const teamData = { name: teamName, players: [] };
+            const teamsRef = collection(db, `users/${auth.currentUser.uid}/teams`);
+            await setDoc(doc(teamsRef, teamName), teamData); // Use team name as ID for simplicity
+            
+            await fetchUserTeams();
+            renderTeamsList();
+            await hideCustomModal('loadingModal');
+            document.getElementById('newTeamNameInput').value = '';
+        }
+
+        function renderTeamsList() {
+            const container = document.getElementById('teamsContainer');
+            container.innerHTML = '';
+            if (userTeams.length === 0) {
+                container.innerHTML = '<p class="text-center text-muted">No teams created yet. Add a team to get started.</p>';
+                return;
+            }
+
+            userTeams.forEach((team, index) => {
+                let playersList = '';
+                team.players.forEach(player => {
+                    playersList += `<li class="list-group-item d-flex justify-content-between align-items-center">${player} <button class="btn btn-sm btn-outline-danger" onclick="deletePlayer('${team.id}', '${player}')"><i class="bi bi-x-lg"></i></button></li>`;
+                });
+
+                container.innerHTML += `
+                    <div class="accordion-item">
+                        <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading${index}">
+                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}">
+                                ${team.name}
+                            </button>
+                             <button class="btn btn-sm btn-outline-danger me-2" onclick="handleDeleteTeam('${team.id}')"><i class="bi bi-trash"></i></button>
+                        </h2>
+                        <div id="collapse${index}" class="accordion-collapse collapse" data-bs-parent="#teamsContainer">
+                            <div class="accordion-body">
+                                <ul class="list-group mb-3">${playersList}</ul>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" placeholder="New player name" id="player-input-${team.id}">
+                                    <button class="btn btn-outline-success" onclick="addPlayer('${team.id}')">Add Player</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        async function addPlayer(teamId) {
+            const input = document.getElementById(`player-input-${teamId}`);
+            const playerName = input.value.trim();
+            if(!playerName) return;
+
+            const team = userTeams.find(t => t.id === teamId);
+            if(team && !team.players.includes(playerName)) {
+                const updatedPlayers = [...team.players, playerName];
+                const teamRef = doc(db, `users/${auth.currentUser.uid}/teams`, teamId);
+                await updateDoc(teamRef, { players: updatedPlayers });
+                await fetchUserTeams();
+                renderTeamsList();
+            }
+            input.value = '';
+        }
+
+        async function deletePlayer(teamId, playerName) {
+            const team = userTeams.find(t => t.id === teamId);
+             if(team) {
+                const updatedPlayers = team.players.filter(p => p !== playerName);
+                const teamRef = doc(db, `users/${auth.currentUser.uid}/teams`, teamId);
+                await updateDoc(teamRef, { players: updatedPlayers });
+                await fetchUserTeams();
+                renderTeamsList();
+            }
+        }
+        
+        async function handleDeleteTeam(teamId) {
+            if(!confirm(`Are you sure you want to delete the team "${teamId}"? This cannot be undone.`)) return;
+            await showCustomModal('loadingModal', 'Deleting team...');
+            const teamRef = doc(db, `users/${auth.currentUser.uid}/teams`, teamId);
+            await deleteDoc(teamRef);
+            await fetchUserTeams();
+            renderTeamsList();
+            await hideCustomModal('loadingModal');
+        }
+
         // --- MATCH MANAGEMENT ---
         async function createMatch() {
-            const teamAName = document.getElementById('teamANameInput').value.trim() || 'Team A';
-            const teamBName = document.getElementById('teamBNameInput').value.trim() || 'Team B';
+            const teamA = document.getElementById('teamASelect').value || document.getElementById('teamANameInput').value.trim() || 'Team A';
+            const teamB = document.getElementById('teamBSelect').value || document.getElementById('teamBNameInput').value.trim() || 'Team B';
             const oversPerInning = parseInt(document.getElementById('oversInput').value) || 5;
+
+            if (teamA === teamB) return alert("Teams must have different names.");
 
             await hideCustomModal('createMatchModal');
             await showCustomModal('loadingModal', 'Creating Match...');
             currentMatchId = generateMatchId();
-            matchHistory = []; // Reset history for new match
+            matchHistory = []; 
             
             const newMatchData = {
                 creatorUid: auth.currentUser.uid, 
-                teamAName, teamBName, oversPerInning,
+                teamAName: teamA, teamBName: teamB, oversPerInning,
+                isTeamApremade: !!document.getElementById('teamASelect').value,
+                isTeamBpremade: !!document.getElementById('teamBSelect').value,
                 gameState: 'setup', 
-                tossWonBy: teamAName, 
-                choseTo: 'Bat', 
                 currentInning: 1,
-                innings: { 1: createInningData(teamAName, teamBName), 2: createInningData(teamBName, teamAName) },
+                innings: { 1: createInningData(teamA, teamB), 2: createInningData(teamB, teamA) },
             };
             
             try {
@@ -631,7 +801,7 @@
             const matchId = document.getElementById('joinMatchIdInput').value.trim();
             if (!matchId) return alert("Please enter a Match ID.");
             await showCustomModal('loadingModal', 'Joining Match...');
-            matchHistory = []; // Reset history for joined match
+            matchHistory = [];
             try {
                 const matchRef = doc(db, `matches`, matchId);
                 const matchSnap = await getDoc(matchRef);
@@ -716,8 +886,9 @@
             } catch (error) {
                 console.error("Error deleting match:", error);
                 alert("Failed to delete match. Please try again.");
+            } finally {
                 await hideCustomModal('loadingModal');
-            } 
+            }
         }
 
         function listenToMatch(matchId) {
@@ -738,20 +909,18 @@
         
         // --- UI RENDERING & VIEWS ---
         function showView(viewId) {
-            ['authView', 'homeView', 'scoreboardView', 'matchEndView', 'myMatchesView'].forEach(id => {
+            ['authView', 'homeView', 'scoreboardView', 'matchEndView', 'myMatchesView', 'playersView'].forEach(id => {
                 document.getElementById(id).style.display = (id === viewId) ? 'block' : 'none';
             });
             const isLoggedIn = auth.currentUser !== null;
             document.getElementById('logoutBtn').style.display = isLoggedIn ? 'block' : 'none';
             document.getElementById('profileBtn').style.display = isLoggedIn ? 'block' : 'none';
             document.getElementById('myMatchesBtn').style.display = isLoggedIn ? 'block' : 'none';
+            document.getElementById('playersBtn').style.display = isLoggedIn ? 'block' : 'none';
         }
 
         function goToHome() {
-            if (unsubscribeFromMatch) {
-                unsubscribeFromMatch();
-                unsubscribeFromMatch = null;
-            }
+            if (unsubscribeFromMatch) unsubscribeFromMatch();
             currentMatchId = null;
             matchData = null;
             matchHistory = [];
@@ -769,7 +938,7 @@
                  if(isScorer) {
                     showView('scoreboardView'); 
                     document.getElementById('scoringControls').style.display = 'none';
-                    renderScoreboard(); // Render scoreboard to see context
+                    renderScoreboard();
                     showNewInningsModal();
                 } else {
                     showView('scoreboardView');
@@ -847,9 +1016,9 @@
             await hideCustomModal('playerSelectModal');
 
             if (matchData.gameState === 'setup') {
-                const strikerName = document.getElementById('openingStrikerInput').value.trim() || 'Batsman 1';
-                const nonStrikerName = document.getElementById('openingNonStrikerInput').value.trim() || 'Batsman 2';
-                const bowlerName = document.getElementById('openingBowlerInput').value.trim() || 'Bowler 1';
+                const strikerName = document.getElementById('openingStrikerSelect')?.value || document.getElementById('openingStrikerInput')?.value.trim() || 'Batsman 1';
+                const nonStrikerName = document.getElementById('openingNonStrikerSelect')?.value || document.getElementById('openingNonStrikerInput')?.value.trim() || 'Batsman 2';
+                const bowlerName = document.getElementById('openingBowlerSelect')?.value || document.getElementById('openingBowlerInput')?.value.trim() || 'Bowler 1';
                 updates = {
                     gameState: 'live',
                     [`${inningPath}.striker`]: createPlayerData(strikerName),
@@ -859,12 +1028,12 @@
                     [`${inningPath}.bowlersUsed`]: [bowlerName]
                 };
             } else if (matchData.gameState === 'wicket_wait') {
-                const newBatsmanName = document.getElementById('newBatsmanInput').value.trim() || 'New Batsman';
+                const newBatsmanName = document.getElementById('newBatsmanSelectField')?.value || document.getElementById('newBatsmanInput')?.value.trim() || 'New Batsman';
                 updates = { gameState: 'live' };
                 updates[`${inningPath}.${matchData.outBatsman}`] = inning.battingStats[newBatsmanName] || createPlayerData(newBatsmanName);
                 updates[`${inningPath}.battingOrder`] = [...new Set([...inning.battingOrder, newBatsmanName])];
             } else if(matchData.gameState === 'over_end_wait') {
-                const newBowlerName = document.getElementById('newBowlerInput').value.trim() || `Bowler ${inning.bowlersUsed.length + 1}`;
+                const newBowlerName = document.getElementById('newBowlerSelectField')?.value || document.getElementById('newBowlerInput')?.value.trim() || `Bowler ${inning.bowlersUsed.length + 1}`;
                 updates = { gameState: 'live' };
                 updates[`${inningPath}.bowlingStats.${inning.bowler.name}`] = inning.bowler;
                 updates[`${inningPath}.bowler`] = inning.bowlingStats[newBowlerName] || createBowlerData(newBowlerName);
@@ -905,16 +1074,23 @@
             }
         }
         
-        async function handleExtra(type) {
+        async function handleExtra(type, extraRuns = 0) {
             if (matchData.gameState !== 'live') return;
             const inningPath = `innings.${matchData.currentInning}`;
             const inning = matchData.innings[matchData.currentInning];
-            const newTotalRuns = inning.runs + 1;
+            const penaltyRun = (type === 'nb' || type === 'wd') ? 1 : 0;
+            const newTotalRuns = inning.runs + penaltyRun + extraRuns;
 
-            const updates = {
-                [`${inningPath}.runs`]: newTotalRuns,
-                [`${inningPath}.bowler.runsConceded`]: inning.bowler.runsConceded + 1
-            };
+            const updates = { [`${inningPath}.runs`]: newTotalRuns };
+            
+            if(type === 'nb') {
+                updates[`${inningPath}.striker.runs`] = inning.striker.runs + extraRuns;
+                updates[`${inningPath}.bowler.runsConceded`] = inning.bowler.runsConceded + penaltyRun + extraRuns;
+            } else if (type === 'wd') {
+                 updates[`${inningPath}.bowler.runsConceded`] = inning.bowler.runsConceded + penaltyRun + extraRuns;
+            } else { // Byes or Leg Byes
+                updates[`${inningPath}.totalBalls`] = inning.totalBalls + 1;
+            }
             
             if (matchData.currentInning === 2 && newTotalRuns >= (matchData.innings['1'].runs + 1)) {
                 return endInnings(updates);
@@ -958,11 +1134,10 @@
             await showCustomModal('loadingModal', 'Undoing...');
             try {
                 const matchRef = doc(db, "matches", currentMatchId);
-                // Use setDoc to completely overwrite the document with the previous state
                 await setDoc(matchRef, stateToRestore);
             } catch (error) {
                 console.error("Failed to undo state:", error);
-                matchHistory.push(stateToRestore); // Push it back if restore fails
+                matchHistory.push(stateToRestore);
             } finally {
                 await hideCustomModal('loadingModal');
             }
@@ -1006,10 +1181,9 @@
 
         async function updateMatchData(updates) {
             if (!currentMatchId) return;
-            // Save state for undo BEFORE making the update
-            if (matchData) {
+            if (matchData && auth.currentUser?.uid === matchData.creatorUid) {
                 matchHistory.push(JSON.parse(JSON.stringify(matchData)));
-                if (matchHistory.length > 20) matchHistory.shift(); // Limit history size
+                if (matchHistory.length > 20) matchHistory.shift(); 
             }
             await showCustomModal('loadingModal', 'Updating...');
             try {
@@ -1017,7 +1191,7 @@
                 await updateDoc(matchRef, updates);
             } catch (error) {
                 console.error("Failed to update match data:", error);
-                matchHistory.pop(); // Revert history if update fails
+                if (auth.currentUser?.uid === matchData?.creatorUid) matchHistory.pop();
             } finally {
                 await hideCustomModal('loadingModal');
             }
@@ -1051,35 +1225,137 @@
             document.getElementById('outNonStrikerLabel').textContent = document.getElementById('nonStrikerDisplay').textContent;
             showCustomModal('wicketModal');
         }
-        function showNewBatsmanModal() {
-            document.getElementById('initialPlayerSelect').style.display = 'none';
-            document.getElementById('newBatsmanSelect').style.display = 'block';
+
+        function buildPlayerSelect(label, id, players, disabledOptions = []) {
+            let options = '<option value="">Select a player</option>';
+            players.forEach(p => {
+                const isDisabled = disabledOptions.includes(p);
+                options += `<option value="${p}" ${isDisabled ? 'disabled' : ''}>${p}</option>`;
+            });
+            return `<div class="mb-3"><label class="form-label">${label}</label><select id="${id}" class="form-select">${options}</select></div>`;
+        }
+
+        function buildPlayerInput(label, id) {
+            return `<div class="mb-3"><label class="form-label">${label}</label><input type="text" id="${id}" class="form-control" placeholder="Enter name"></div>`;
+        }
+        
+        function showNewInningsModal() {
+            const inningNumber = matchData.currentInning;
+            const battingTeamName = matchData.innings[inningNumber].battingTeam;
+            const bowlingTeamName = matchData.innings[inningNumber].bowlingTeam;
+
+            const isBattingTeamPremade = (battingTeamName === matchData.teamAName) ? matchData.isTeamApremade : matchData.isTeamBpremade;
+            const isBowlingTeamPremade = (bowlingTeamName === matchData.teamAName) ? matchData.isTeamBpremade : matchData.isTeamApremade;
+
+            const battingTeam = userTeams.find(t => t.name === battingTeamName);
+            const bowlingTeam = userTeams.find(t => t.name === bowlingTeamName);
+            
+            const container = document.getElementById('initialPlayerSelect');
+            container.innerHTML = isBattingTeamPremade ?
+                buildPlayerSelect('Opening Batsman (Striker)', 'openingStrikerSelect', battingTeam?.players || []) + buildPlayerSelect('Opening Batsman (Non-Striker)', 'openingNonStrikerSelect', battingTeam?.players || []) :
+                buildPlayerInput('Opening Batsman (Striker)', 'openingStrikerInput') + buildPlayerInput('Opening Batsman (Non-Striker)', 'openingNonStrikerInput');
+            
+            container.innerHTML += isBowlingTeamPremade ?
+                buildPlayerSelect('Opening Bowler', 'openingBowlerSelect', bowlingTeam?.players || []) :
+                buildPlayerInput('Opening Bowler', 'openingBowlerInput');
+            
+            if(isBattingTeamPremade) {
+                const strikerSelect = document.getElementById('openingStrikerSelect');
+                const nonStrikerSelect = document.getElementById('openingNonStrikerSelect');
+                strikerSelect.addEventListener('change', () => updateBatsmanOptions('openingStrikerSelect', 'openingNonStrikerSelect', battingTeam?.players || []));
+                nonStrikerSelect.addEventListener('change', () => updateBatsmanOptions('openingNonStrikerSelect', 'openingStrikerSelect', battingTeam?.players || []));
+            }
+            
+            document.getElementById('initialPlayerSelect').style.display = 'block';
+            document.getElementById('newBatsmanSelect').style.display = 'none';
             document.getElementById('newBowlerSelect').style.display = 'none';
-            document.getElementById('newBatsmanInput').value = '';
+            document.getElementById('playerSelectTitle').textContent = `Start Inning ${inningNumber}: ${battingTeamName}`;
+            showCustomModal('playerSelectModal');
+        }
+
+        function showNewBatsmanModal() {
+            const inning = matchData.innings[matchData.currentInning];
+            const battingTeamName = inning.battingTeam;
+            const isBattingTeamPremade = (battingTeamName === matchData.teamAName) ? matchData.isTeamApremade : matchData.isTeamBpremade;
+            const battingTeam = userTeams.find(t => t.name === battingTeamName);
+            
+            const notOutBatsmanAtCrease = matchData.outBatsman === 'striker' ? inning.nonStriker?.name : inning.striker?.name;
+            const outBatsmenNames = Object.keys(inning.battingStats);
+            const availableBatsmen = battingTeam?.players.filter(p => p !== notOutBatsmanAtCrease && !outBatsmenNames.includes(p)) || [];
+
+            const container = document.getElementById('newBatsmanSelect');
+            container.innerHTML = isBattingTeamPremade ? buildPlayerSelect('New Batsman', 'newBatsmanSelectField', availableBatsmen) : buildPlayerInput('New Batsman', 'newBatsmanInput');
+            
+            document.getElementById('initialPlayerSelect').style.display = 'none';
+            container.style.display = 'block';
+            document.getElementById('newBowlerSelect').style.display = 'none';
             document.getElementById('playerSelectTitle').textContent = `Wicket! Who is the next batsman?`;
             showCustomModal('playerSelectModal');
         }
          function showNewBowlerModal() {
+            const inning = matchData.innings[matchData.currentInning];
+            const bowlingTeamName = inning.bowlingTeam;
+            const isBowlingTeamPremade = (bowlingTeamName === matchData.teamAName) ? matchData.isTeamApremade : matchData.isTeamBpremade;
+            const bowlingTeam = userTeams.find(t => t.name === bowlingTeamName);
+            const lastBowler = inning.bowler.name;
+            const availableBowlers = bowlingTeam?.players.filter(p => p !== lastBowler) || [];
+
+            const container = document.getElementById('newBowlerSelect');
+            container.innerHTML = isBowlingTeamPremade ? buildPlayerSelect('New Bowler', 'newBowlerSelectField', availableBowlers) : buildPlayerInput('New Bowler', 'newBowlerInput');
+
             document.getElementById('initialPlayerSelect').style.display = 'none';
             document.getElementById('newBatsmanSelect').style.display = 'none';
-            document.getElementById('newBowlerSelect').style.display = 'block';
-            document.getElementById('newBowlerInput').value = '';
+            container.style.display = 'block';
             document.getElementById('playerSelectTitle').textContent = `End of Over. Select New Bowler.`;
             showCustomModal('playerSelectModal');
         }
-        function showNewInningsModal() {
-            const inningNumber = matchData.currentInning;
-            const battingTeam = matchData.innings[inningNumber].battingTeam;
-            document.getElementById('initialPlayerSelect').style.display = 'block';
-            document.getElementById('newBatsmanSelect').style.display = 'none';
-            document.getElementById('newBowlerSelect').style.display = 'none';
-            document.getElementById('openingStrikerInput').value = '';
-            document.getElementById('openingNonStrikerInput').value = '';
-            document.getElementById('openingBowlerInput').value = '';
-            document.getElementById('playerSelectTitle').textContent = `Start Inning ${inningNumber}: ${battingTeam}`;
-            showCustomModal('playerSelectModal');
+        
+        function updateBatsmanOptions(primaryId, secondaryId, allPlayers) {
+            const primarySelect = document.getElementById(primaryId);
+            const secondarySelect = document.getElementById(secondaryId);
+            if(!primarySelect || !secondarySelect) return;
+            const primaryValue = primarySelect.value;
+            const secondaryValue = secondarySelect.value;
+            
+            secondarySelect.innerHTML = '';
+            let options = '<option value="">Select a player</option>';
+            allPlayers.forEach(p => {
+                if(p !== primaryValue) {
+                    options += `<option value="${p}">${p}</option>`;
+                }
+            });
+            secondarySelect.innerHTML = options;
+            if(secondaryValue && secondaryValue !== primaryValue) {
+                secondarySelect.value = secondaryValue;
+            }
         }
         
+        function showExtraModal(type) {
+            const modalTitle = document.getElementById('extraModalTitle');
+            const runsLabel = document.querySelector('#extraModal .form-label');
+            
+            if (type === 'nb') {
+                modalTitle.textContent = 'No Ball';
+                runsLabel.textContent = 'Runs scored off the bat (in addition to the no ball)?';
+            } else if (type === 'wd') {
+                modalTitle.textContent = 'Wide';
+                runsLabel.textContent = 'How many additional runs were taken (e.g., overthrows)?';
+            } else if (type === 'b') {
+                modalTitle.textContent = 'Byes';
+                runsLabel.textContent = 'How many byes were run?';
+            } else if (type === 'lb') {
+                modalTitle.textContent = 'Leg Byes';
+                runsLabel.textContent = 'How many leg byes were run?';
+            }
+            document.getElementById('extraRunsInput').value = 0;
+            document.getElementById('confirmExtraBtn').onclick = () => {
+                const runs = parseInt(document.getElementById('extraRunsInput').value) || 0;
+                handleExtra(type, runs);
+                hideCustomModal('extraModal');
+            };
+            showCustomModal('extraModal');
+        }
+
         // --- Custom Modal Functions ---
         function showCustomModal(modalId, text) {
             const modal = document.getElementById(modalId);
@@ -1096,26 +1372,25 @@
             let battingRows = '';
             const processedBatsmen = new Set();
         
-            const fullBattingOrder = [...new Set([...inningData.battingOrder, (inningData.striker?.name), (inningData.nonStriker?.name)].filter(Boolean))];
-
-            for (const playerName of fullBattingOrder) {
+            // Determine the full player list for the batting team
+            const battingTeamData = userTeams.find(t => t.name === inningData.battingTeam);
+            const fullBattingList = battingTeamData ? battingTeamData.players : inningData.battingOrder;
+            
+            for (const playerName of fullBattingList) {
                 if (processedBatsmen.has(playerName)) continue;
+                
                 let stats;
-                let isOut = false;
+                if (isCurrentInning && inningData.striker?.name === playerName) stats = inningData.striker;
+                else if (isCurrentInning && inningData.nonStriker?.name === playerName) stats = inningData.nonStriker;
+                else stats = inningData.battingStats[playerName];
                 
-                if (isCurrentInning && inningData.striker?.name === playerName) {
-                    stats = inningData.striker;
-                } else if (isCurrentInning && inningData.nonStriker?.name === playerName) {
-                    stats = inningData.nonStriker;
-                } else {
-                    stats = inningData.battingStats[playerName];
-                    isOut = stats?.isOut;
-                }
-                
-                if (stats && stats.name) {
-                    battingRows += `<tr><td>${stats.name}${isCurrentInning && (inningData.striker?.name === playerName) ? '*' : ''}</td><td>${isOut ? 'out' : 'not out'}</td><td class="fw-bold">${stats.runs}</td><td>${stats.balls}</td></tr>`;
-                    processedBatsmen.add(playerName);
-                }
+                const runs = stats?.runs ?? "-";
+                const balls = stats?.balls ?? "-";
+                const isOut = stats?.isOut;
+                const status = isOut ? "out" : (isCurrentInning && (inningData.striker?.name === playerName || inningData.nonStriker?.name === playerName)) ? 'not out' : 'yet to bat';
+
+                battingRows += `<tr><td>${playerName}${isCurrentInning && (inningData.striker?.name === playerName) ? '*' : ''}</td><td>${status}</td><td class="fw-bold">${runs}</td><td>${balls}</td></tr>`;
+                processedBatsmen.add(playerName);
             }
 
             let bowlingRows = '';
@@ -1137,7 +1412,18 @@
             return `<div class="card mb-3"><div class="card-header bg-light text-dark fw-bold">${inningData.battingTeam} - ${inningData.runs}/${inningData.wickets} (${completedOvers}.${ballsInOver} Overs)</div><div class="card-body"><h6 class="fw-bold">Batting</h6><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Batsman</th><th>Status</th><th>Runs</th><th>Balls</th></tr></thead><tbody>${battingRows}</tbody></table></div><h6 class="fw-bold mt-3">Bowling</h6><div class="table-responsive"><table class="table table-sm mb-0"><thead><tr><th>Bowler</th><th>Overs</th><th>Runs</th><th>Wickets</th></tr></thead><tbody>${bowlingRows}</tbody></table></div></div></div>`;
         }
 
-        // --- Expose functions to global scope for HTML onclick attributes ---
+        // --- Expose functions to global scope ---
+        window.handleLogin = handleLogin;
+        window.handleRegister = handleRegister;
+        window.handleLogout = handleLogout;
+        window.handleForgotPassword = handleForgotPassword;
+        window.showProfileModal = showProfileModal;
+        window.createMatch = createMatch;
+        window.joinMatch = joinMatch;
+        window.handlePlayerSelection = handlePlayerSelection;
+        window.handleWicket = handleWicket;
+        window.copyMatchId = copyMatchId;
+        window.handleSaveTeam = handleSaveTeam;
         window.handleScore = handleScore;
         window.handleExtra = handleExtra;
         window.swapBatsmen = swapBatsmen;
@@ -1148,6 +1434,12 @@
         window.goToHome = goToHome;
         window.handleUndo = handleUndo;
         window.handleDeleteMatch = handleDeleteMatch;
+        window.addPlayer = addPlayer;
+        window.deletePlayer = deletePlayer;
+        window.handleMyMatchesClick = handleMyMatchesClick;
+        window.handlePlayersClick = handlePlayersClick;
+        window.handleDeleteTeam = handleDeleteTeam;
+        window.showExtraModal = showExtraModal;
 
     </script>
 </body>
