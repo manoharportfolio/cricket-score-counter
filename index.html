@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cricket Score Counter</title>
+    <link rel="icon" href="data:,"> <!-- Prevent favicon 404 error -->
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" crossorigin="anonymous">
 
     <style>
         /* Custom styles for a more advanced UI */
@@ -99,7 +100,7 @@
             background-color: #e0e7ff;
         }
 
-        #authView, #homeView, #scoreboardView, #matchEndView, #myMatchesView, #playersView, #scoringControls { display: none; }
+        #authView, #homeView, #scoreboardView, #matchEndView, #myMatchesView, #playersView, #tournamentsView, #tournamentDetailView, #scoringControls { display: none; }
         
         /* --- Custom Modal Styles --- */
         .custom-modal-backdrop {
@@ -194,10 +195,11 @@
     <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
       <div class="container-fluid">
         <a class="navbar-brand fw-bold" href="#" onclick="goToHome()">
-            <i class="bi bi-person-workspace"></i>
+            <i class="bi bi-trophy-fill"></i>
             Cricket Score Counter
         </a>
         <div class="d-flex">
+             <button id="tournamentsBtn" class="btn btn-outline-success me-2" style="display: none;">Tournaments</button>
              <button id="myMatchesBtn" class="btn btn-outline-primary me-2" style="display: none;">My Matches</button>
              <button id="playersBtn" class="btn btn-outline-info me-2" style="display: none;">Players</button>
             <button id="profileBtn" class="btn btn-outline-secondary me-2" style="display: none;">My Profile</button>
@@ -240,7 +242,7 @@
         <div id="homeView">
             <div class="card text-center shadow-lg">
                 <div class="card-body p-lg-5 p-4">
-                    <h1 class="card-title fw-bold display-4 mb-3">Start a Match</h1>
+                    <h1 class="card-title fw-bold display-4 mb-3">Start Scoring</h1>
                     <p class="card-text text-muted fs-5 mb-4">Create a new match or join one that's already in progress.</p>
                     <div class="d-grid gap-3 d-md-block">
                         <button class="btn btn-primary btn-lg px-5 py-3" onclick="showCustomModal('createMatchModal')">
@@ -266,6 +268,39 @@
             </div>
             <div id="myMatchesList" class="list-group">
                 <!-- Match list will be populated here -->
+            </div>
+        </div>
+
+        <!-- Tournaments View -->
+        <div id="tournamentsView">
+             <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="fw-bold mb-0">My Tournaments</h2>
+                <button class="btn btn-primary" onclick="showCustomModal('addTournamentModal')"><i class="bi bi-plus-circle"></i> Add Tournament</button>
+            </div>
+            <div id="tournamentsList" class="list-group">
+                <!-- Tournaments list will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Tournament Detail View -->
+        <div id="tournamentDetailView">
+            <h2 id="tournamentDetailName" class="fw-bold mb-3"></h2>
+            <div class="card mb-4">
+                <div class="card-header">Teams</div>
+                <div class="card-body">
+                    <ul id="tournamentTeamsList" class="list-group list-group-flush mb-3"></ul>
+                    <div class="input-group">
+                        <select id="addTeamToTournamentSelect" class="form-select"></select>
+                        <button class="btn btn-outline-primary" id="addTeamToTournamentBtn">Add Team</button>
+                    </div>
+                </div>
+            </div>
+             <div class="card">
+                <div class="card-header">Fixtures</div>
+                <div class="card-body">
+                    <div id="tournamentFixturesList"></div>
+                    <button id="generateFixturesBtn" class="btn btn-success mt-3" style="display: none;">Generate Fixtures</button>
+                </div>
             </div>
         </div>
 
@@ -508,6 +543,26 @@
         </div>
     </div>
 
+     <!-- Add Tournament Modal -->
+    <div id="addTournamentModal" class="custom-modal-backdrop">
+        <div class="custom-modal">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">Add New Tournament</h5>
+                <button type="button" class="btn-close" onclick="hideCustomModal('addTournamentModal')"></button>
+            </div>
+            <div class="custom-modal-body">
+                <div class="mb-3">
+                    <label for="newTournamentNameInput" class="form-label">Tournament Name</label>
+                    <input type="text" class="form-control" id="newTournamentNameInput" placeholder="e.g., Summer Cup 2025">
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideCustomModal('addTournamentModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveTournamentBtn">Create Tournament</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Loading Modal -->
     <div id="loadingModal" class="custom-modal-backdrop">
@@ -519,9 +574,6 @@
         </div>
     </div>
     
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <!-- Firebase Libraries -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -547,6 +599,7 @@
 
         let currentMatchId = null;
         let matchData = null;
+        let currentTournamentId = null;
         let unsubscribeFromMatch = null;
         let matchHistory = [];
         let userTeams = [];
@@ -561,22 +614,25 @@
             document.getElementById('profileBtn').addEventListener('click', showProfileModal);
             document.getElementById('myMatchesBtn').addEventListener('click', handleMyMatchesClick);
             document.getElementById('playersBtn').addEventListener('click', handlePlayersClick);
-            document.getElementById('startMatchBtn').addEventListener('click', createMatch);
+            document.getElementById('tournamentsBtn').addEventListener('click', handleTournamentsClick);
+            document.getElementById('startMatchBtn').addEventListener('click', () => createMatch());
             document.getElementById('joinMatchBtn').addEventListener('click', joinMatch);
             document.getElementById('confirmPlayerSelectBtn').addEventListener('click', handlePlayerSelection);
             document.getElementById('confirmWicketBtn').addEventListener('click', handleWicket);
             document.getElementById('matchIdDisplay').addEventListener('click', copyMatchId);
             document.getElementById('saveTeamBtn').addEventListener('click', handleSaveTeam);
+            document.getElementById('saveTournamentBtn').addEventListener('click', handleCreateTournament);
 
             onAuthStateChanged(auth, user => {
                 if (user) {
                     fetchUserTeams();
-                    if(!currentMatchId) showView('homeView');
+                    if(!currentMatchId && !currentTournamentId) showView('homeView');
                 } else {
                     showView('authView');
                     if (unsubscribeFromMatch) unsubscribeFromMatch();
                     currentMatchId = null;
                     matchData = null;
+                    currentTournamentId = null;
                     matchHistory = [];
                 }
             });
@@ -763,10 +819,12 @@
             await hideCustomModal('loadingModal');
         }
 
-        // --- MATCH MANAGEMENT ---
-        async function createMatch() {
-            const teamA = document.getElementById('teamASelect').value || document.getElementById('teamANameInput').value.trim() || 'Team A';
-            const teamB = document.getElementById('teamBSelect').value || document.getElementById('teamBNameInput').value.trim() || 'Team B';
+        // --- MATCH & TOURNAMENT MANAGEMENT ---
+        async function createMatch(teamA, teamB, tournamentId = null, fixtureIndex = -1) {
+             if (!teamA || !teamB) { // Check if called from the modal
+                teamA = document.getElementById('teamASelect').value || document.getElementById('teamANameInput').value.trim() || 'Team A';
+                teamB = document.getElementById('teamBSelect').value || document.getElementById('teamBNameInput').value.trim() || 'Team B';
+            }
             const oversPerInning = parseInt(document.getElementById('oversInput').value) || 5;
 
             if (teamA === teamB) return alert("Teams must have different names.");
@@ -778,9 +836,10 @@
             
             const newMatchData = {
                 creatorUid: auth.currentUser.uid, 
+                tournamentId, // Link to tournament
                 teamAName: teamA, teamBName: teamB, oversPerInning,
-                isTeamApremade: !!document.getElementById('teamASelect').value,
-                isTeamBpremade: !!document.getElementById('teamBSelect').value,
+                isTeamApremade: !!userTeams.find(t=>t.name === teamA),
+                isTeamBpremade: !!userTeams.find(t=>t.name === teamB),
                 gameState: 'setup', 
                 currentInning: 1,
                 innings: { 1: createInningData(teamA, teamB), 2: createInningData(teamB, teamA) },
@@ -789,6 +848,18 @@
             try {
                 const matchRef = doc(db, `matches`, currentMatchId);
                 await setDoc(matchRef, newMatchData);
+
+                if(tournamentId !== null && fixtureIndex !== -1) {
+                    const tournamentRef = doc(db, `users/${auth.currentUser.uid}/tournaments`, tournamentId);
+                    const tournamentSnap = await getDoc(tournamentRef);
+                    if(tournamentSnap.exists()){
+                        const tournamentData = tournamentSnap.data();
+                        const matches = tournamentData.matches;
+                        matches[fixtureIndex].matchId = currentMatchId;
+                        await updateDoc(tournamentRef, { matches });
+                    }
+                }
+                
                 await listenToMatch(currentMatchId);
             } catch(error) {
                 console.error("Error creating match:", error);
@@ -890,6 +961,176 @@
                 await hideCustomModal('loadingModal');
             }
         }
+        
+        async function handleTournamentsClick() {
+            showView('tournamentsView');
+            await showCustomModal('loadingModal', 'Loading tournaments...');
+            await fetchUserTournaments();
+            await hideCustomModal('loadingModal');
+        }
+        
+        async function fetchUserTournaments() {
+            if (!auth.currentUser) return;
+            const tournamentsRef = collection(db, `users/${auth.currentUser.uid}/tournaments`);
+            const querySnapshot = await getDocs(tournamentsRef);
+            const listContainer = document.getElementById('tournamentsList');
+            listContainer.innerHTML = '';
+
+            if (querySnapshot.empty) {
+                listContainer.innerHTML = '<p class="text-center text-muted">No tournaments created yet. Add one to get started.</p>';
+                return;
+            }
+
+            querySnapshot.forEach(doc => {
+                 const tournament = { id: doc.id, ...doc.data() };
+                 const status = tournament.status || 'Upcoming';
+                 const statusColor = status === 'Completed' ? 'success' : 'warning';
+                 const listItem = document.createElement('a');
+                 listItem.href = '#';
+                 listItem.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+                 listItem.innerHTML = `
+                    <div>
+                        <h5 class="mb-1">${tournament.name}</h5>
+                    </div>
+                    <div>
+                        <span class="badge bg-${statusColor} rounded-pill me-2">${status}</span>
+                        <button class="btn btn-sm btn-outline-danger" onclick="handleDeleteTournament(event, '${doc.id}')"><i class="bi bi-trash"></i></button>
+                    </div>
+                 `;
+                 listItem.addEventListener('click', (e) => {
+                     e.preventDefault();
+                     viewTournament(tournament.id)
+                });
+                 listContainer.appendChild(listItem);
+            });
+        }
+        
+        async function handleCreateTournament() {
+            const name = document.getElementById('newTournamentNameInput').value.trim();
+            if(!name) return alert("Tournament name is required.");
+            await hideCustomModal('addTournamentModal');
+            await showCustomModal('loadingModal', 'Creating tournament...');
+
+            const tournamentData = {
+                creatorUid: auth.currentUser.uid,
+                name: name,
+                status: 'Upcoming',
+                teams: [],
+                matches: [],
+            };
+
+            try {
+                const tournamentsRef = collection(db, `users/${auth.currentUser.uid}/tournaments`);
+                await setDoc(doc(tournamentsRef), tournamentData);
+                await fetchUserTournaments();
+            } catch (error) {
+                console.error("Error creating tournament:", error);
+            } finally {
+                await hideCustomModal('loadingModal');
+                document.getElementById('newTournamentNameInput').value = '';
+            }
+        }
+        
+        async function handleDeleteTournament(e, tournamentId) {
+            e.stopPropagation();
+            if(!confirm("Are you sure you want to delete this tournament and all its matches? This cannot be undone.")) return;
+            await showCustomModal('loadingModal', 'Deleting tournament...');
+            const tournamentRef = doc(db, `users/${auth.currentUser.uid}/tournaments`, tournamentId);
+            await deleteDoc(tournamentRef);
+            await fetchUserTournaments();
+            await hideCustomModal('loadingModal');
+        }
+
+        async function viewTournament(tournamentId) {
+            currentTournamentId = tournamentId;
+            showView('tournamentDetailView');
+            await showCustomModal('loadingModal', 'Loading tournament...');
+            const tournamentRef = doc(db, `users/${auth.currentUser.uid}/tournaments`, tournamentId);
+            const tournamentSnap = await getDoc(tournamentRef);
+            if (tournamentSnap.exists()) {
+                renderTournamentDetails(tournamentSnap.data());
+            } else {
+                alert("Tournament not found!");
+                goToHome();
+            }
+            await hideCustomModal('loadingModal');
+        }
+
+        function renderTournamentDetails(tournamentData) {
+            document.getElementById('tournamentDetailName').textContent = tournamentData.name;
+            const teamsList = document.getElementById('tournamentTeamsList');
+            teamsList.innerHTML = '';
+            tournamentData.teams.forEach(teamName => {
+                teamsList.innerHTML += `<li class="list-group-item">${teamName}</li>`;
+            });
+            
+            const addTeamSelect = document.getElementById('addTeamToTournamentSelect');
+            const teamsNotInTournament = userTeams.filter(t => !tournamentData.teams.includes(t.name));
+            addTeamSelect.innerHTML = '<option value="">Select team to add</option>';
+            teamsNotInTournament.forEach(t => {
+                addTeamSelect.innerHTML += `<option value="${t.name}">${t.name}</option>`;
+            });
+            document.getElementById('addTeamToTournamentBtn').onclick = () => addTeamToTournament(currentTournamentId);
+
+            const generateBtn = document.getElementById('generateFixturesBtn');
+            if(tournamentData.teams.length > 1 && tournamentData.matches.length === 0) {
+                generateBtn.style.display = 'block';
+                generateBtn.onclick = () => generateFixtures(currentTournamentId);
+            } else {
+                generateBtn.style.display = 'none';
+            }
+
+             const fixturesContainer = document.getElementById('tournamentFixturesList');
+             fixturesContainer.innerHTML = '';
+             if(tournamentData.matches.length > 0) {
+                 tournamentData.matches.forEach((match, index) => {
+                     fixturesContainer.innerHTML += `
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>${match.teamA} vs ${match.teamB}</span>
+                            ${match.matchId ? `<a href="#" onclick="listenToMatch('${match.matchId}'); return false;">View Match</a>` : `<button class="btn btn-sm btn-primary" onclick="startTournamentMatch('${currentTournamentId}', '${match.teamA}', '${match.teamB}', ${index})">Start Match</button>`}
+                        </div>
+                     `;
+                 });
+             }
+
+        }
+
+        async function addTeamToTournament(tournamentId) {
+            const teamName = document.getElementById('addTeamToTournamentSelect').value;
+            if(!teamName) return;
+            const tournamentRef = doc(db, `users/${auth.currentUser.uid}/tournaments`, tournamentId);
+            const tournamentSnap = await getDoc(tournamentRef);
+            if(tournamentSnap.exists()){
+                const currentTeams = tournamentSnap.data().teams || [];
+                if(!currentTeams.includes(teamName)){
+                    await updateDoc(tournamentRef, { teams: [...currentTeams, teamName] });
+                    viewTournament(tournamentId); // Refresh view
+                }
+            }
+        }
+        
+        async function generateFixtures(tournamentId) {
+            await showCustomModal('loadingModal', 'Generating fixtures...');
+            const tournamentRef = doc(db, `users/${auth.currentUser.uid}/tournaments`, tournamentId);
+            const tournamentSnap = await getDoc(tournamentRef);
+             if(tournamentSnap.exists()){
+                 const teams = tournamentSnap.data().teams;
+                 const fixtures = [];
+                 for(let i=0; i<teams.length; i++){
+                     for(let j=i+1; j<teams.length; j++){
+                         fixtures.push({teamA: teams[i], teamB: teams[j], matchId: null});
+                     }
+                 }
+                 await updateDoc(tournamentRef, { matches: fixtures });
+                 viewTournament(tournamentId);
+             }
+            await hideCustomModal('loadingModal');
+        }
+        
+        async function startTournamentMatch(tournamentId, teamA, teamB, fixtureIndex) {
+            await createMatch(teamA, teamB, tournamentId, fixtureIndex);
+        }
+
 
         function listenToMatch(matchId) {
             currentMatchId = matchId;
@@ -909,7 +1150,7 @@
         
         // --- UI RENDERING & VIEWS ---
         function showView(viewId) {
-            ['authView', 'homeView', 'scoreboardView', 'matchEndView', 'myMatchesView', 'playersView'].forEach(id => {
+            ['authView', 'homeView', 'scoreboardView', 'matchEndView', 'myMatchesView', 'playersView', 'tournamentsView', 'tournamentDetailView'].forEach(id => {
                 document.getElementById(id).style.display = (id === viewId) ? 'block' : 'none';
             });
             const isLoggedIn = auth.currentUser !== null;
@@ -917,12 +1158,14 @@
             document.getElementById('profileBtn').style.display = isLoggedIn ? 'block' : 'none';
             document.getElementById('myMatchesBtn').style.display = isLoggedIn ? 'block' : 'none';
             document.getElementById('playersBtn').style.display = isLoggedIn ? 'block' : 'none';
+            document.getElementById('tournamentsBtn').style.display = isLoggedIn ? 'block' : 'none';
         }
 
         function goToHome() {
             if (unsubscribeFromMatch) unsubscribeFromMatch();
             currentMatchId = null;
             matchData = null;
+            currentTournamentId = null;
             matchHistory = [];
             showView('homeView');
         }
@@ -1295,7 +1538,7 @@
          function showNewBowlerModal() {
             const inning = matchData.innings[matchData.currentInning];
             const bowlingTeamName = inning.bowlingTeam;
-            const isBowlingTeamPremade = (bowlingTeamName === matchData.teamAName) ? matchData.isTeamApremade : matchData.isTeamBpremade;
+            const isBowlingTeamPremade = (bowlingTeamName === matchData.teamAName) ? matchData.isTeamBpremade : matchData.isTeamApremade;
             const bowlingTeam = userTeams.find(t => t.name === bowlingTeamName);
             const lastBowler = inning.bowler.name;
             const availableBowlers = bowlingTeam?.players.filter(p => p !== lastBowler) || [];
@@ -1372,8 +1615,9 @@
             let battingRows = '';
             const processedBatsmen = new Set();
         
-            // Determine the full player list for the batting team
-            const battingTeamData = userTeams.find(t => t.name === inningData.battingTeam);
+            const battingTeamName = inningData.battingTeam;
+            const isPremade = (battingTeamName === matchData.teamAName) ? matchData.isTeamApremade : matchData.isTeamBpremade;
+            const battingTeamData = isPremade ? userTeams.find(t => t.name === battingTeamName) : null;
             const fullBattingList = battingTeamData ? battingTeamData.players : inningData.battingOrder;
             
             for (const playerName of fullBattingList) {
@@ -1440,6 +1684,12 @@
         window.handlePlayersClick = handlePlayersClick;
         window.handleDeleteTeam = handleDeleteTeam;
         window.showExtraModal = showExtraModal;
+        window.handleCreateTournament = handleCreateTournament;
+        window.handleTournamentsClick = handleTournamentsClick;
+        window.viewTournament = viewTournament;
+        window.startTournamentMatch = startTournamentMatch;
+        window.addTeamToTournament = addTeamToTournament;
+        window.generateFixtures = generateFixtures;
 
     </script>
 </body>
