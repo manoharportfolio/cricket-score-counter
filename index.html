@@ -637,6 +637,7 @@
             document.getElementById('matchIdDisplay').addEventListener('click', copyMatchId);
             document.getElementById('saveTeamBtn').addEventListener('click', handleSaveTeam);
             document.getElementById('saveTournamentBtn').addEventListener('click', handleCreateTournament);
+            document.getElementById('teamsContainer').addEventListener('click', handleTeamListClicks);
 
             onAuthStateChanged(auth, user => {
                 if (user) {
@@ -770,57 +771,90 @@
             }
 
             userTeams.forEach((team, index) => {
-                let playersList = '';
+                const accordionItem = document.createElement('div');
+                accordionItem.className = 'accordion-item';
+                const collapseId = `collapse${index}`;
+                
+                let playersListHtml = '';
                 team.players.forEach(player => {
-                    playersList += `<li class="list-group-item d-flex justify-content-between align-items-center">${player} <button class="btn btn-sm btn-outline-danger" onclick="deletePlayer('${team.id}', '${player}')"><i class="bi bi-x-lg"></i></button></li>`;
+                    playersListHtml += `<li class="list-group-item d-flex justify-content-between align-items-center" data-player-name="${player}">${player} <button class="btn btn-sm btn-outline-danger btn-delete-player" data-team-id="${team.id}" data-player-name="${player}"><i class="bi bi-x-lg"></i></button></li>`;
                 });
 
-                container.innerHTML += `
-                    <div class="accordion-item">
-                        <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading${index}">
-                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}">
-                                ${team.name}
-                            </button>
-                             <button class="btn btn-sm btn-outline-danger me-2" onclick="handleDeleteTeam('${team.id}')"><i class="bi bi-trash"></i></button>
-                        </h2>
-                        <div id="collapse${index}" class="accordion-collapse collapse" data-bs-parent="#teamsContainer">
-                            <div class="accordion-body">
-                                <ul class="list-group mb-3">${playersList}</ul>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" placeholder="New player name" id="player-input-${team.id}">
-                                    <button class="btn btn-outline-success" onclick="addPlayer('${team.id}')">Add Player</button>
-                                </div>
+                accordionItem.innerHTML = `
+                    <h2 class="accordion-header d-flex justify-content-between align-items-center" id="heading${index}">
+                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                            ${team.name}
+                        </button>
+                         <button class="btn btn-sm btn-outline-danger me-2 btn-delete-team" data-team-id="${team.id}"><i class="bi bi-trash"></i></button>
+                    </h2>
+                    <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#teamsContainer">
+                        <div class="accordion-body">
+                            <ul class="list-group mb-3">${playersListHtml}</ul>
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="New player name" id="player-input-${team.id}">
+                                <button class="btn btn-outline-success btn-add-player" data-team-id="${team.id}" data-team-index="${index}">Add Player</button>
                             </div>
                         </div>
                     </div>
                 `;
+                
+                container.appendChild(accordionItem);
             });
         }
         
-        async function addPlayer(teamId) {
+        function handleTeamListClicks(e) {
+            const addBtn = e.target.closest('.btn-add-player');
+            const deletePlayerBtn = e.target.closest('.btn-delete-player');
+            const deleteTeamBtn = e.target.closest('.btn-delete-team');
+
+            if (addBtn) {
+                addPlayer(addBtn.dataset.teamId, addBtn.dataset.teamIndex);
+            } else if (deletePlayerBtn) {
+                deletePlayer(deletePlayerBtn.dataset.teamId, deletePlayerBtn.dataset.playerName);
+            } else if (deleteTeamBtn) {
+                handleDeleteTeam(deleteTeamBtn.dataset.teamId);
+            }
+        }
+
+        async function addPlayer(teamId, teamIndex) {
             const input = document.getElementById(`player-input-${teamId}`);
             const playerName = input.value.trim();
             if(!playerName) return;
 
             const team = userTeams.find(t => t.id === teamId);
             if(team && !team.players.includes(playerName)) {
+                await showCustomModal('loadingModal', 'Adding player...');
                 const updatedPlayers = [...team.players, playerName];
                 const teamRef = doc(db, `users/${auth.currentUser.uid}/teams`, teamId);
                 await updateDoc(teamRef, { players: updatedPlayers });
-                await fetchUserTeams();
-                renderTeamsList();
+                
+                // Update local state and DOM directly
+                userTeams[teamIndex].players.push(playerName);
+                const playerListElement = document.querySelector(`#collapse${teamIndex} ul`);
+                const newPlayerLi = document.createElement('li');
+                newPlayerLi.className = 'list-group-item d-flex justify-content-between align-items-center';
+                newPlayerLi.dataset.playerName = playerName;
+                newPlayerLi.innerHTML = `${playerName} <button class="btn btn-sm btn-outline-danger btn-delete-player" data-team-id="${teamId}" data-player-name="${playerName}"><i class="bi bi-x-lg"></i></button>`;
+                playerListElement.appendChild(newPlayerLi);
+                input.value = '';
+                await hideCustomModal('loadingModal');
             }
-            input.value = '';
         }
 
         async function deletePlayer(teamId, playerName) {
-            const team = userTeams.find(t => t.id === teamId);
+            const teamIndex = userTeams.findIndex(t => t.id === teamId);
+            const team = userTeams[teamIndex];
              if(team) {
+                await showCustomModal('loadingModal', 'Deleting player...');
                 const updatedPlayers = team.players.filter(p => p !== playerName);
                 const teamRef = doc(db, `users/${auth.currentUser.uid}/teams`, teamId);
                 await updateDoc(teamRef, { players: updatedPlayers });
-                await fetchUserTeams();
-                renderTeamsList();
+
+                // Update local state and DOM
+                userTeams[teamIndex].players = updatedPlayers;
+                 const playerLi = document.querySelector(`#collapse${teamIndex} [data-player-name="${playerName}"]`);
+                 if(playerLi) playerLi.remove();
+                 await hideCustomModal('loadingModal');
             }
         }
         
@@ -829,8 +863,7 @@
             await showCustomModal('loadingModal', 'Deleting team...');
             const teamRef = doc(db, `users/${auth.currentUser.uid}/teams`, teamId);
             await deleteDoc(teamRef);
-            await fetchUserTeams();
-            renderTeamsList();
+            await handlePlayersClick();
             await hideCustomModal('loadingModal');
         }
 
@@ -1740,6 +1773,7 @@
         window.generateFixtures = generateFixtures;
         window.findTournament = findTournament;
         window.listenToMatch = listenToMatch;
+        window.handleTeamListClicks = handleTeamListClicks;
 
     </script>
 </body>
